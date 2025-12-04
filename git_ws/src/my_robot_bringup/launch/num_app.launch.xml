@@ -1,0 +1,19 @@
+<launch>
+    <node pkg="course_py" exec="smartphone" name="smartphone_"/>
+    <node pkg="course_cpp" exec="robot_news_station" name="robot_news_station_giskard">
+        <param from="$(find-pkg-share my_robot_bringup)/config/my_robot.yaml"/> 
+    </node>
+    <node pkg="course_cpp" exec="robot_news_station" name="robot_news_station_bb8">
+        <param from="$(find-pkg-share my_robot_bringup)/config/my_robot.yaml"/> 
+    </node>
+    <node pkg="course_cpp" exec="robot_news_station" name="robot_news_station_daneel">
+        <param from="$(find-pkg-share my_robot_bringup)/config/my_robot.yaml"/> 
+    </node>
+    <node pkg="course_cpp" exec="robot_news_station" name="robot_news_station_jander">
+        <param from="$(find-pkg-share my_robot_bringup)/config/my_robot.yaml"/> 
+    </node>
+    <node pkg="course_cpp" exec="robot_news_station" name="robot_news_station_c3po">
+        <param from="$(find-pkg-share my_robot_bringup)/config/my_robot.yaml"/> 
+    </node>
+
+</launch>
