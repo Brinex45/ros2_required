@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<!-- Basic rover drive mobile base -->
+<robot name="rover_base" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:include filename="$(find rover_base_description)/urdf/rover_base_description.urdf.xacro" />
+
+  <!-- Import Rviz colors -->
+  <xacro:include filename="$(find rover_base_description)/urdf/rover.materials.xacro" />
+
+  <!-- Import rover ros2_control description -->
+  <xacro:include filename="$(find rover_base_description)/urdf/rover_base.ros2_control.xacro" />
+
+
+</robot>
