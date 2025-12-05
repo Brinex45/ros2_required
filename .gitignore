@@ -1,5 +1,4 @@
-/irc_ros_ws/install
-/irc_ros_ws/build
-/irc_ros_ws/log
-/irc_ros_ws/.vscode
-/.vscode
+*/build/
+*/install/
+*/log/
+*/.vscode/
