@@ -1,0 +1,14 @@
+controller_manager:
+  ros__parameters:
+    update_rate: 50
+
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+    arm_joints_controller:
+      type: forward_command_controller/ForwardCommandController
+
+arm_joints_controller:
+  ros__parameters:
+    joints: ["turret_joint", "shoulder_joint", "elbow_joint", "wrist_pitch", "wrist_roll"]
+    interface_name: "position"

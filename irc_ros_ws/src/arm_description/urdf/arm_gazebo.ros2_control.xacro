@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <ros2_control name="Arm" type="system">
+        <hardware>
+            <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+        </hardware>
+        <joint name="turret_joint">
+            <command_interface name="position" />
+            <state_interface name="position" />
+        </joint>
+        <joint name="shoulder_joint">
+            <command_interface name="position" />
+            <state_interface name="position" />
+        </joint>
+        <joint name="elbow_joint">
+            <command_interface name="position" />
+            <state_interface name="position" />
+        </joint>
+        <joint name="wrist_pitch">
+            <command_interface name="position" />
+            <state_interface name="position" />
+        </joint>
+        <joint name="wrist_roll">
+            <command_interface name="position" />
+            <state_interface name="position" />
+        </joint>
+    </ros2_control>
+    
+    <gazebo>
+        <plugin name="gz_ros2_control::GazeboSimROS2ControlPlugin" filename="gz_ros2_control-system" >
+            <parameters>$(find arm_bringup)/config/arm_controller.yaml</parameters>
+        </plugin>
+    </gazebo>
+
+</robot>
