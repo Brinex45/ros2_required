@@ -7,9 +7,19 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(irc_custom_interfaces REQUIRED)
+
+add_executable(arm_kinematics_node src/arm_kinematic.cpp)
+ament_target_dependencies(arm_kinematics_node rclcpp irc_custom_interfaces)
+
+install(TARGETS
+  arm_kinematics_node
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 install(
-  DIRECTORY urdf meshes
+  DIRECTORY urdf meshes src
   DESTINATION share/${PROJECT_NAME}/
 )
 

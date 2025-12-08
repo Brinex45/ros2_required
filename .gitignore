@@ -4,3 +4,10 @@
 */*/log/
 */*/.vscode/
 .vscode
+/arm_ws/
+/irc_ws/
+/micro_ros_esp/
+/micro_ros_teensy/
+/microros_ws/
+/ros2_ws/
+/turtlebot3_ws/
