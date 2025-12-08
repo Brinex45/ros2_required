@@ -23,8 +23,8 @@ private:
         stamped_msg.header.stamp = this->get_clock()->now();
         stamped_msg.header.frame_id = "base_link";  // Change as needed
 
-        stamped_msg.twist.linear.x = 15 * msg->linear.x;
-        stamped_msg.twist.angular.z = 60 * msg->angular.z;
+        stamped_msg.twist.linear.x = 3 * msg->linear.x;
+        stamped_msg.twist.angular.z = 3 * msg->angular.z;
 
         twist_stamped_pub_->publish(stamped_msg);
     }
