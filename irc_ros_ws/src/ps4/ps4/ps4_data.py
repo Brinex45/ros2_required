@@ -43,12 +43,15 @@ class IrcPs4(Node):
         axes = [0] * 7
         buttons = [0] * 16
 
-        axes[0] = (int(round(js.get_axis(0)*127)))
-        axes[1] = (int(round(js.get_axis(1)*(-127))))
-        axes[2] = (int(round(js.get_axis(2)*127))) + 127
-        axes[3] = (int(round(js.get_axis(3)*127)))
-        axes[4] = (int(round(js.get_axis(4)*(-127))))
-        axes[5] = (int(round(js.get_axis(5)*127))) + 127
+        axes[0] = (int(round(js.get_axis(0)*127))) if abs(js.get_axis(0)) > 0.24 else 0
+        axes[1] = (int(round(js.get_axis(1)*(-127)))) if abs(js.get_axis(1)) > 0.24 else 0
+
+        axes[2] = (int(round(js.get_axis(2)*127))) + 127 if abs((int(round(js.get_axis(2)*127))) + 127) > 20 else 0
+        
+        axes[3] = (int(round(js.get_axis(3)*127))) if abs(js.get_axis(3)) > 0.24 else 0
+        axes[4] = (int(round(js.get_axis(4)*(-127)))) if abs(js.get_axis(4)) > 0.24 else 0
+        
+        axes[5] = (int(round(js.get_axis(5)*127))) + 127 if abs((int(round(js.get_axis(5)*127))) + 127) > 20 else 0
 
         buttons = [bool(js.get_button(i)) for i in range(js.get_numbuttons())]
 

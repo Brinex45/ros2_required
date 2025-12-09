@@ -28,6 +28,13 @@ def generate_launch_description():
             executable='joy_node',
             parameters=[joy_params],
          )
+    
+    # ps4_data_node = Node(
+    #         package='ps4',
+    #         executable='ps4_data_node',
+    #         name='ps4_data_node',
+    #         parameters=[joy_params],
+    #      )
 
     teleop_node = Node(
             package='teleop_twist_joy',

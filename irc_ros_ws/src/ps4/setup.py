@@ -24,7 +24,8 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'ps4_data_node = ps4.ps4_data:main'
+            'ps4_data_node = ps4.ps4_data:main',
+            'ps4_data_to_twist = ps4.ps4_data_to_twist:main',
         ],
     },
 )
