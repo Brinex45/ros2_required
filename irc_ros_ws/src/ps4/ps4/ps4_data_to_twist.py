@@ -20,7 +20,11 @@ class DataToTwist(Node):
         self.pub = self.create_publisher(Twist, "/unstamped_vel", 10) 
 
         self.declare_parameter("timer_period", 0.05)
+        self.declare_parameter("multiplier", 1.0)
+
         self.timer_period_ = self.get_parameter("timer_period").value
+        self.multiplier_ = self.get_parameter("multiplier").value
+
         self.number_timer_ = self.create_timer(self.timer_period_, self.publish_ps_data)
 
     def listener_callback(self, msg: Ps4): 
@@ -29,8 +33,8 @@ class DataToTwist(Node):
     def publish_ps_data(self): 
         twist = Twist()
         
-        twist.linear.x = self.ps4_msg.ps4_data_analog[1] / 127.0
-        twist.angular.z = self.ps4_msg.ps4_data_analog[0] / 127.0
+        twist.linear.x = (self.ps4_msg.ps4_data_analog[1] / 127.0) * self.multiplier_
+        twist.angular.z = ( - self.ps4_msg.ps4_data_analog[0] / 127.0) * self.multiplier_
 
         self.pub.publish(twist)
 

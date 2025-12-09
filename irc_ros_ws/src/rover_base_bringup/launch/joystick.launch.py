@@ -23,18 +23,18 @@ def generate_launch_description():
 
     joy_params = os.path.join(get_package_share_directory('rover_base_bringup'),'config','joystick.yaml')
     
-    joy_node = Node(
-            package='joy',
-            executable='joy_node',
-            parameters=[joy_params],
-         )
-    
-    # ps4_data_node = Node(
-    #         package='ps4',
-    #         executable='ps4_data_node',
-    #         name='ps4_data_node',
-    #         parameters=[joy_params],
-    #      )
+    ps4_data_node = Node(
+        package='ps4',
+        executable='ps4_data_node',
+        name='ps4_data_node'
+        )
+
+    ps4_data_to_twist = Node(
+        package='ps4',
+        executable='ps4_data_to_twist',
+        name='ps4_data_to_twist',
+        parameters=[joy_params]
+        )
 
     teleop_node = Node(
             package='teleop_twist_joy',
@@ -42,16 +42,18 @@ def generate_launch_description():
             name='teleop_node',
             parameters=[joy_params],
             remappings=[('/cmd_vel','/unstamped_vel')]
-         )
+        )
     
     twist_to_stamped_node = Node(
             package='rover_base_description',
             executable='twist_to_stamped',
             name='twist_to_stamped',
-         )
+        )
 
     nodes = [
-        joy_node,
+        # joy_node,
+        ps4_data_node,
+        ps4_data_to_twist,
         teleop_node,
         twist_to_stamped_node,
     ]

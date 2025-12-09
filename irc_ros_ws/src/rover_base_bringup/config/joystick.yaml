@@ -1,8 +1,13 @@
-joy_node:
+# joy_node:
+#   ros__parameters:
+#     device_id: 0
+#     deadzone: 0.05
+#     autorepeat_rate: 20.0
+
+ps4_data_to_twist:
   ros__parameters:
-    device_id: 0
-    deadzone: 0.05
-    autorepeat_rate: 20.0
+    timer_period: 0.05
+    multiplier: 1.0
 
 teleop_node:
   ros__parameters:
