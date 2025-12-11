@@ -15,6 +15,7 @@ class IrcPs4(Node):
         self.get_logger().info("IrcPs4 node has been started.")
 
         self.data = self.create_publisher(Ps4, "ps4_data_", 10)
+        self.data_1 = self.create_publisher(Ps4, "ps4_data_arm", 10)
 
         self.declare_parameter("timer_period", 0.05)
         self.timer_period_ = self.get_parameter("timer_period").value
@@ -67,6 +68,7 @@ class IrcPs4(Node):
         msg.ps4_data_buttons = buttons[:16] + [False] * (16 - len(buttons))  # pad if fewer than 16
 
         self.data.publish(msg) 
+        self.data_1.publish(msg)
         self.get_logger().info(f'Published Ps4 message: {msg}')
 
 

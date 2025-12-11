@@ -2,7 +2,8 @@
 
 #include "rclcpp/rclcpp.hpp"
 
-#include "irc_custom_interfaces/msg/arm_angles.hpp"
+// #include "irc_custom_interfaces/msg/arm_angles.hpp"
+#include "std_msgs/msg/float64_multi_array.hpp"
 #include "irc_custom_interfaces/msg/ps4.hpp"
 
 using namespace std::chrono_literals;
@@ -63,11 +64,11 @@ inline double radians(double deg) {
 
 class ArmKinematics : public rclcpp::Node {
 private:
-    rclcpp::Publisher<irc_custom_interfaces::msg::ArmAngles>::SharedPtr publisher_;
+    rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr publisher_;
     rclcpp::Subscription<irc_custom_interfaces::msg::Ps4>::SharedPtr subscriber_;
     rclcpp::TimerBase::SharedPtr timer_;
 
-    irc_custom_interfaces::msg::ArmAngles target_angles_;
+    std_msgs::msg::Float64MultiArray target_angles_;
 
     void joint_command_callback(const irc_custom_interfaces::msg::Ps4::SharedPtr msg) {
 
@@ -88,13 +89,13 @@ private:
             y_target += Left_Y * k;
         }
 
-        if (L2 > 20) {
-            z_target += L2 * k;
-        }
+        // if (L2 > 20) {
+        //     z_target += L2 * k;
+        // }
 
-        if (R2 > 20) {
-            z_target -= R2 * k;
-        }
+        // if (R2 > 20) {
+        //     z_target -= R2 * k;
+        // }
 
         if (abs(Right_X) > 20) {
             theta_target += Right_X * k;
@@ -152,10 +153,11 @@ private:
 
         find_ik_3(x_target, y_target, z_target, theta_target);
 
-        target_angles_.angles[0] = angle1;
-        target_angles_.angles[1] = angle2;
-        target_angles_.angles[2] = angle3;
-        target_angles_.angles[3] = angle4;
+        target_angles_.data.resize(4);
+        target_angles_.data[0] = (angle1);
+        target_angles_.data[1] = (angle2);
+        target_angles_.data[2] = (angle3);
+        target_angles_.data[3] = (angle4);
 
         if (flag)
             publisher_->publish(target_angles_);
@@ -164,7 +166,7 @@ private:
 
 public:
     ArmKinematics() : Node("arm_kinematics_node") {
-        publisher_ = this->create_publisher<irc_custom_interfaces::msg::ArmAngles>("arm_angles", 10);
+        publisher_ = this->create_publisher<std_msgs::msg::Float64MultiArray>("/arm_joints_controller/commands", 10);
         
         subscriber_ = this->create_subscription<irc_custom_interfaces::msg::Ps4>(
             "ps4_data_arm",

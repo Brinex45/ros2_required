@@ -10,6 +10,7 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
   
   <depend>rclcpp</depend>
+  <depend>std_msgs</depend>
   <depend>xacro</depend>
   <depend>rviz2</depend>
   <depend>irc_custom_interfaces</depend>

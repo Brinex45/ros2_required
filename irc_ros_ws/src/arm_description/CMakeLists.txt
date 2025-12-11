@@ -8,10 +8,11 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(irc_custom_interfaces REQUIRED)
 
 add_executable(arm_kinematics_node src/arm_kinematic.cpp)
-ament_target_dependencies(arm_kinematics_node rclcpp irc_custom_interfaces)
+ament_target_dependencies(arm_kinematics_node rclcpp irc_custom_interfaces std_msgs)
 
 install(TARGETS
   arm_kinematics_node
