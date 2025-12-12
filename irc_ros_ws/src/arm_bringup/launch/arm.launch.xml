@@ -13,6 +13,8 @@
 
     <node pkg="arm_description" exec="arm_kinematics_node" name="arm_kinematics_node"/>
 
+    <!-- <node pkg="joint_state_publisher_gui" exec="joint_state_publisher_gui"/> -->
+
     <node pkg="controller_manager" exec="ros2_control_node">
         <param from="$(find-pkg-share arm_bringup)/config/arm_controller.yaml" />
     </node>
