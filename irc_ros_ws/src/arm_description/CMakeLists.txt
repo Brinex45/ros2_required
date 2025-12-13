@@ -10,10 +10,11 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(irc_custom_interfaces REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 add_executable(arm_kinematics_node src/arm_kinematic.cpp)
 ament_target_dependencies(arm_kinematics_node rclcpp irc_custom_interfaces std_msgs)
-
+target_link_libraries(arm_kinematics_node Eigen3::Eigen)
 install(TARGETS
   arm_kinematics_node
   DESTINATION lib/${PROJECT_NAME}

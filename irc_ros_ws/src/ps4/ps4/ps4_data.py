@@ -69,7 +69,7 @@ class IrcPs4(Node):
 
         self.data.publish(msg) 
         self.data_1.publish(msg)
-        self.get_logger().info(f'Published Ps4 message: {msg}')
+        # self.get_logger().info(f'Published Ps4 message: {msg}')
 
 
                 

@@ -1,5 +1,5 @@
 #include <cmath>
-
+#include <Eigen/Dense>
 #include "rclcpp/rclcpp.hpp"
 
 // #include "irc_custom_interfaces/msg/arm_angles.hpp"
@@ -10,6 +10,59 @@ using namespace std::chrono_literals;
 using namespace std::placeholders;
 using namespace std;
 
+Eigen::Matrix4d rot_x(double angle) {
+    Eigen::Matrix4d R(4, 4);
+    R << 1, 0, 0, 0,
+         0, cos(angle), -sin(angle), 0,
+         0, sin(angle), cos(angle), 0,
+         0, 0, 0, 1;
+    return R;
+}
+Eigen::Matrix4d rot_y(double angle) {
+    Eigen::Matrix4d R(4, 4);
+    R << cos(angle), 0, sin(angle), 0,
+         0, 1, 0, 0,
+         -sin(angle), 0, cos(angle), 0,
+         0, 0, 0, 1;
+    return R;
+}
+Eigen::Matrix4d rot_z(double angle) {
+    Eigen::Matrix4d R(4, 4);
+    R << cos(angle), -sin(angle), 0, 0, 
+         sin(angle), cos(angle), 0, 0,
+         0, 0, 1, 0,
+         0, 0, 0, 1;
+    return R;
+}
+
+Eigen::Matrix4d translate(double x, double y, double z) {
+    Eigen::Matrix4d T(4, 4);
+    T << 1, 0, 0, x,
+         0, 1, 0, y,
+         0, 0, 1, z,
+         0, 0, 0, 1;
+    return T;
+}
+
+Eigen::Matrix4d home_matrix = [] {
+    Eigen::Matrix4d H;
+    H << 0, 0, 1, 125.5,
+         0, 1, 0, 0,
+        -1, 0, 0, 487.5,
+         0, 0, 0, 1;
+    return H;
+}();
+
+Eigen::Matrix4d Transform_matrix = home_matrix;
+
+#define unit_trans 1
+#define unit_rot 0.5
+
+#define d1 37.5
+#define d5 80.5
+#define a2 450
+#define a3 450
+
 int8_t Left_X = 0;
 int8_t Left_Y = 0;
 int8_t L2 = 0;
@@ -19,24 +72,34 @@ int8_t Right_Y = 0;
 
 double k = 0.0001;
 
-double x_target = 55;
-double y_target = 25;
-double z_target = 0;
-double theta_target = 0;
+
+// float a1;
+// float a2;
+// float d1;
+// float d2;
+
+double x_target;
+double y_target;
+double z_target;
+double y_rot;
+double z_rot;
 
 double prev_x_target;
 double prev_y_target;
 double prev_z_target;
-double prev_theta_target;
+double prev_y_rot;
+double prev_z_rot;
+
+// double theta_target;
+// double prev_theta_target;
 
 float length1 = 48;
 float length2 = 45;
 float length3 = 5;
 
-float d1;
-float d2;
-float a1;
-float a2;
+float theta_1, theta_2, theta_3, theta_4, theta_5;
+float theta_234;
+
 float angle1;
 float angle2;
 float angle3;
@@ -61,6 +124,41 @@ inline double radians(double deg) {
     return deg * (M_PI / 180.0);
 }
 
+inline double constrain(double val, double min_val, double max_val) {
+    if (val < min_val) return min_val;
+    if (val > max_val) return max_val;
+    return val;
+}
+
+float mapValue(float x,
+               float in_min, float in_max,
+               float out_min, float out_max) {
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+void mapping(){
+
+    Left_X = mapValue(Left_X, -128, 127, -1.0, 1.0);
+    Left_Y = mapValue(Left_Y, -128, 127, -1.0, 1.0);
+    Right_X = mapValue(Right_X, -128, 127, -1.0, 1.0);
+    Right_Y = mapValue(Right_Y, -128, 127, -1.0, 1.0);
+    L2 = mapValue(L2, -128, 127, 0, 1.0);
+    R2 = mapValue(R2, -128, 127, 0, 1.0);
+
+    if (Left_X) {
+        x_target += (Left_X * unit_trans);
+    }
+    if (Left_Y) {
+        y_target += (Left_Y * unit_trans);
+    }
+    if (Right_Y) {
+        z_target += (Right_Y * unit_trans);
+    }
+    if (L2 || R2) {
+        y_rot = ((L2 - R2) * unit_rot);
+    } else y_rot = 0;
+
+}
 
 class ArmKinematics : public rclcpp::Node {
 private:
@@ -81,65 +179,66 @@ private:
         Right_X = msg->ps4_data_analog[3];
         Right_Y = msg->ps4_data_analog[4];
         
-        if (abs(Left_X) > 20) {
-            x_target += Left_X * k;
-        }
+        mapping();
 
-        if (abs(Left_Y) > 20) {
-            y_target += Left_Y * k;
-        }
-
-        // if (L2 > 20) {
-        //     z_target += L2 * k;
-        // }
-
-        // if (R2 > 20) {
-        //     z_target -= R2 * k;
-        // }
-
-        if (abs(Right_X) > 20) {
-            theta_target += Right_X * k;
-        }
+        prev_y_rot = y_rot;
+    }
+    
+    void matrix_prep() {
+        double y_rad = radians(y_rot);
+        double z_rad = radians(z_rot);
+        
+        Eigen::Matrix4d Y_new_rot = rot_y(y_rad);
+        Eigen::Matrix4d Z_new_rot = rot_z(z_rad);
+        
+        Eigen::Matrix4d Trans = translate(x_target - prev_x_target, y_target - prev_y_target, z_target - prev_z_target);
 
         prev_x_target = x_target;
         prev_y_target = y_target;
         prev_z_target = z_target;
-        prev_theta_target = theta_target;
+
+        Transform_matrix = (Transform_matrix * Y_new_rot * Z_new_rot) + Trans;
     }
 
-    void find_ik_2(float x, float y, float angle) {
-        x3 = x - (length3 * cos(radians(angle)));
-        y3 = y - (length3 * sin(radians(angle)));
+    void kinematic(){
+        matrix_prep();
 
-        d1 = sqrt(pow(x3, 2) + pow(y3, 2));
+        // float nx = Transform_matrix(0, 0);
+        // float ny = Transform_matrix(1, 0);
+        float nz = Transform_matrix(2, 0);
 
-        a1 = degrees(atan2(y3, x3));
-        a2 = degrees(acos((pow(d1, 2) + pow(length1, 2) - pow(length2, 2)) / (2 * d1 * length1)));
-        angle1 = (a1 + a2);
+        // float sx = Transform_matrix(0, 1);
+        // float sy = Transform_matrix(1, 1);
+        float sz = Transform_matrix(2, 1);
 
-        x2 = length1 * cos(radians(angle1));
-        y2 = length1 * sin(radians(angle1));
-        d2 = sqrt(pow(x - x2, 2) + pow(y - y2, 2));
+        float ax = Transform_matrix(0, 2);
+        float ay = Transform_matrix(1, 2);
+        float az = Transform_matrix(2, 2);
 
-        angle2 = (degrees(acos((pow(length2, 2) + pow(length1, 2) - pow(d1, 2)) / (2 * length2 * length1))));
+        float px = Transform_matrix(0, 3);
+        float py = Transform_matrix(1, 3);
+        float pz = Transform_matrix(2, 3);
 
-        angle3 = angle - angle1 + 180.0 - angle2;
-    }
+        theta_1 = atan2(py, px);
+        theta_5 = atan2(sz, -nz);
 
-    void find_ik_3(float x, float y, float z, float theta) {
-        angle4 = degrees(atan2(z, x));
+        theta_234 = atan2(-((ax * cos(theta_1)) + (ay * sin(theta_1))), -az);
 
-        find_ik_2(sqrt(pow(x, 2) + pow(z, 2)), y, theta);
+        float c = (px / cos(theta_1)) + d5 * sin(theta_234);
+        float d = d1 - d5 * cos(theta_234) - pz;
 
-        if (inside_ws())
-            flag = true;
-        else {
-            x_target = prev_x_target;
-            y_target = prev_y_target;
-            z_target = prev_z_target;
-            theta_target = prev_theta_target;
-            flag = false;
-        }
+        float costheta3 = (pow(c, 2) + pow(d, 2) - pow(a2, 2) - pow(a3, 2)) / (2 * a2 * a3);
+        costheta3 = constrain(costheta3, -1, 1);
+        float sintheta3 = sqrt(1 - pow(costheta3, 2));
+
+        theta_3 = atan2(sintheta3, costheta3);
+
+        float r = a3 * cos(theta_3) + a2;
+        float s = a3 * sin(theta_3);
+
+        theta_2 = atan2(r * d - s * c, r * c + s * d);
+        theta_4 = theta_234 - theta_2 - theta_3 + M_PI;
+
     }
 
     bool inside_ws() {
@@ -151,16 +250,16 @@ private:
 
     void publish_arm_angles() {
 
-        find_ik_3(x_target, y_target, z_target, theta_target);
+        kinematic();
 
-        target_angles_.data.resize(4);
-        target_angles_.data[0] = (angle1);
-        target_angles_.data[1] = (angle2);
-        target_angles_.data[2] = (angle3);
-        target_angles_.data[3] = (angle4);
+        target_angles_.data.resize(5);
+        target_angles_.data[0] = (theta_1);
+        target_angles_.data[1] = (theta_2);
+        target_angles_.data[2] = (theta_3);
+        target_angles_.data[3] = (theta_4);
+        target_angles_.data[4] = (0.0);
 
-        if (flag)
-            publisher_->publish(target_angles_);
+        publisher_->publish(target_angles_);
         
     }
 

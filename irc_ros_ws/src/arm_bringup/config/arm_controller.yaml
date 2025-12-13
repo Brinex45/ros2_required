@@ -6,9 +6,9 @@ controller_manager:
       type: joint_state_broadcaster/JointStateBroadcaster
 
     arm_joints_controller:
-      type: forward_command_controller/ForwardCommandController
+      type: position_controllers/JointGroupPositionController
 
 arm_joints_controller:
   ros__parameters:
-    joints: ["turret_joint", "shoulder_joint", "elbow_joint", "wrist_pitch", "wrist_roll"]
-    interface_name: "position"
+    joints: ["elbow_joint", "shoulder_joint", "turret_joint", "wrist_pitch", "wrist_roll"]
+ 

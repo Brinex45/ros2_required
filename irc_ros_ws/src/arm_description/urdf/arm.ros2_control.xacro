@@ -4,7 +4,7 @@
     <ros2_control name="Arm" type="system">
         <hardware>
             <plugin>mock_components/GenericSystem</plugin>
-            <param name="calculate_dynamics">true</param>
+            <param name="calculate_dynamics">false</param>
             <!-- <plugin>arm_hardware/ArmHardwareInterface</plugin>
             <param name="joint1_motor_id">10</param>
             <param name="joint2_motor_id">20</param>
