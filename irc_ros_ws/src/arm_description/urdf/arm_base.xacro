@@ -127,39 +127,44 @@
   </collision>
 </link>
 
-<joint name="turret_joint" type="continuous">
+<joint name="turret_joint" type="revolute">
   <origin xyz="0.00646 -0.027932 0.005" rpy="0 0 0"/>
   <parent link="base_link"/>
   <child link="waist_1"/>
   <axis xyz="0.0 0.0 1.0"/>
+  <limit lower="${-pi/2}" upper="${pi/2}" effort="0.0" velocity="0.0"/>
 </joint>
 
-<joint name="shoulder_joint" type="continuous">
+<joint name="shoulder_joint" type="revolute">
   <origin xyz="1e-06 0.0 0.0355" rpy="0 0 0"/>
   <parent link="waist_1"/>
   <child link="shoulder_1"/>
   <axis xyz="0.999968 0.007954 0.0"/>
+  <limit lower="${-pi/2}" upper="-0.17" effort="0.0" velocity="0.0"/>
 </joint>
 
-<joint name="elbow_joint" type="continuous">
+<joint name="elbow_joint" type="revolute">
   <origin xyz="1e-06 -0.000146 0.45" rpy="0 0 0"/>
   <parent link="shoulder_1"/>
   <child link="forearm_1"/>
   <axis xyz="-0.999968 -0.007954 -0.0"/>
+  <limit lower="-0.54" upper="0.42" effort="0.0" velocity="0.0"/>
 </joint>
 
-<joint name="wrist_pitch" type="continuous">
+<joint name="wrist_pitch" type="revolute">
   <origin xyz="-0.003579 0.449983 0.001676" rpy="0 0 0"/>
   <parent link="forearm_1"/>
   <child link="wrist_1_1"/>
   <axis xyz="-0.999968 -0.007954 -0.0"/>
+  <limit lower="${-pi/2}" upper="${pi/2}" effort="0.0" velocity="0.0"/>
 </joint>
 
-<joint name="wrist_roll" type="continuous">
+<joint name="wrist_roll" type="revolute">
   <origin xyz="-0.000238 0.029993 -0.000561" rpy="0 0 0"/>
   <parent link="wrist_1_1"/>
   <child link="wrist_2_1"/>
   <axis xyz="-0.007952 0.999793 -0.018724"/>
+  <limit lower="${-pi/2}" upper="${pi/2}" effort="0.0" velocity="0.0"/>
 </joint>
 
 </robot>

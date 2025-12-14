@@ -26,7 +26,7 @@ class IrcPs4(Node):
 
         count = pygame.joystick.get_count()
         while count < 1:
-            self.get_logger().warn("No joystick found! Please connect your PS4 controller.")
+            # self.get_logger().warn("No joystick found! Please connect your PS4 controller.")
             pygame.time.wait(1000)
             count = pygame.joystick.get_count()
 

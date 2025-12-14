@@ -288,7 +288,7 @@ private:
         theta_2 = -(theta_2 + M_PI/2);
         theta_3 = theta_3 - M_PI/2;
         theta_4 = (theta_4 - M_PI/2);
-        RCLCPP_INFO(this->get_logger(), "Theta1: %.2f, Theta2: %.2f, Theta3: %.2f, Theta4: %.2f, Theta234: %.2f", (theta_1), (theta_2), (theta_3), (theta_4), (theta_234));
+        // RCLCPP_INFO(this->get_logger(), "Theta1: %.2f, Theta2: %.2f, Theta3: %.2f, Theta4: %.2f, Theta234: %.2f", (theta_1), (theta_2), (theta_3), (theta_4), (theta_234));
         
         target_angles_.data.resize(5);
         target_angles_.data[0] = (theta_3);
