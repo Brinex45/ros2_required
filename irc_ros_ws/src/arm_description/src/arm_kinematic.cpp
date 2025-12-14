@@ -37,16 +37,16 @@ Eigen::Matrix4d rot_z(double angle) {
 
 Eigen::Matrix4d translate(double x, double y, double z) {
     Eigen::Matrix4d T(4, 4);
-    T << 1, 0, 0, x,
-         0, 1, 0, y,
-         0, 0, 1, z,
-         0, 0, 0, 1;
+    T << 0, 0, 0, x,
+         0, 0, 0, y,
+         0, 0, 0, z,
+         0, 0, 0, 0;
     return T;
 }
 
 Eigen::Matrix4d home_matrix = [] {
     Eigen::Matrix4d H;
-    H << 0, 0, 1, 125.5,
+    H << 0, 0, 1, 530,
          0, 1, 0, 0,
         -1, 0, 0, 487.5,
          0, 0, 0, 1;
@@ -65,8 +65,8 @@ Eigen::Matrix4d Transform_matrix = home_matrix;
 
 int8_t Left_X = 0;
 int8_t Left_Y = 0;
-int8_t L2 = 0;
-int8_t R2 = 0;
+u_int8_t L2 = 0;
+u_int8_t R2 = 0;
 int8_t Right_X = 0;
 int8_t Right_Y = 0;
 
@@ -82,7 +82,7 @@ double x_target;
 double y_target;
 double z_target;
 double y_rot;
-double z_rot;
+double z_rot = 0;
 
 double prev_x_target;
 double prev_y_target;
@@ -136,30 +136,6 @@ float mapValue(float x,
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
-void mapping(){
-
-    Left_X = mapValue(Left_X, -128, 127, -1.0, 1.0);
-    Left_Y = mapValue(Left_Y, -128, 127, -1.0, 1.0);
-    Right_X = mapValue(Right_X, -128, 127, -1.0, 1.0);
-    Right_Y = mapValue(Right_Y, -128, 127, -1.0, 1.0);
-    L2 = mapValue(L2, -128, 127, 0, 1.0);
-    R2 = mapValue(R2, -128, 127, 0, 1.0);
-
-    if (Left_X) {
-        x_target += (Left_X * unit_trans);
-    }
-    if (Left_Y) {
-        y_target += (Left_Y * unit_trans);
-    }
-    if (Right_Y) {
-        z_target += (Right_Y * unit_trans);
-    }
-    if (L2 || R2) {
-        y_rot = ((L2 - R2) * unit_rot);
-    } else y_rot = 0;
-
-}
-
 class ArmKinematics : public rclcpp::Node {
 private:
     rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr publisher_;
@@ -178,10 +154,43 @@ private:
 
         Right_X = msg->ps4_data_analog[3];
         Right_Y = msg->ps4_data_analog[4];
+
+        if (L2 >= 0) L2 = L2;
+        else L2 += 255;
+        if (R2 >= 0) R2 = R2;
+        else R2 += 255;
         
         mapping();
-
+        
         prev_y_rot = y_rot;
+    }
+
+    void mapping(){
+
+        float Left_X_m = mapValue(Left_X, -128, 127, -1.0, 1.0);
+        float Left_Y_m = mapValue(Left_Y, -128, 127, -1.0, 1.0);
+        float Right_X_m = mapValue(Right_X, -128, 127, -1.0, 1.0);
+        float Right_Y_m = mapValue(Right_Y, -128, 127, -1.0, 1.0);
+        float L2_m = mapValue(L2, 0, 255, 0, 1.0);
+        float R2_m = mapValue(R2, 0, 255, 0, 1.0);
+        
+        // RCLCPP_INFO(this->get_logger(), "Left_X: %f, Left_Y: %f, Right_Y: %f, L2: %f, R2: %f", Left_X_m, Left_Y_m, Right_Y_m, L2_m, R2_m);
+
+        if (abs(Left_X_m) >= 0.2) {
+            x_target += (Left_X_m * unit_trans);
+        }
+        if (abs(Left_Y_m) >= 0.2) {
+            y_target += (Left_Y_m * unit_trans);
+        }
+        if (abs(Right_Y_m) >= 0.2) {
+            z_target += (Right_Y_m * unit_trans);
+        }
+        if (L2_m >= 0.2 || R2_m >= 0.2) {
+            y_rot = ((L2_m - R2_m) * unit_rot);
+        } else y_rot = 0;
+
+        // RCLCPP_INFO(this->get_logger(), "x_target: %.2f, y_target: %.2f, z_target: %.2f, y_rot: %.2f", x_target, y_target, z_target, y_rot);
+
     }
     
     void matrix_prep() {
@@ -198,6 +207,13 @@ private:
         prev_z_target = z_target;
 
         Transform_matrix = (Transform_matrix * Y_new_rot * Z_new_rot) + Trans;
+
+        // RCLCPP_INFO(this->get_logger(), "Transform Matrix:\n%.2f %.2f %.2f %.2f\n%.2f %.2f %.2f %.2f\n%.2f %.2f %.2f %.2f\n%.2f %.2f %.2f %.2f",
+        //     Transform_matrix(0,0), Transform_matrix(0,1), Transform_matrix(0,2), Transform_matrix(0,3),
+        //     Transform_matrix(1,0), Transform_matrix(1,1), Transform_matrix(1,2), Transform_matrix(1,3),
+        //     Transform_matrix(2,0), Transform_matrix(2,1), Transform_matrix(2,2), Transform_matrix(2,3),
+        //     Transform_matrix(3,0), Transform_matrix(3,1), Transform_matrix(3,2), Transform_matrix(3,3)
+        // );
     }
 
     void kinematic(){
@@ -219,6 +235,19 @@ private:
         float py = Transform_matrix(1, 3);
         float pz = Transform_matrix(2, 3);
 
+        // RCLCPP_INFO(this->get_logger(), "Target Position -> X: %.2f, Y: %.2f, Z: %.2f", px, py, pz);
+
+        // RCLCPP_INFO(
+        //     this->get_logger(),
+        //     "Rotation Z column: nz=%.3f, sz=%.3f | "
+        //     "Approach: ax=%.3f, ay=%.3f, az=%.3f | "
+        //     "Position: px=%.3f, py=%.3f, pz=%.3f",
+        //     nz, sz,
+        //     ax, ay, az,
+        //     px, py, pz
+        // );
+
+
         theta_1 = atan2(py, px);
         theta_5 = atan2(sz, -nz);
 
@@ -239,6 +268,8 @@ private:
         theta_2 = atan2(r * d - s * c, r * c + s * d);
         theta_4 = theta_234 - theta_2 - theta_3 + M_PI;
 
+        // RCLCPP_INFO(this->get_logger(), "c: %.2f, d: %.2f, costheta3: %.2f, sintheta: %.2f, r: %.2f, s: %.2f", c, d, costheta3, sintheta3, r, s);
+
     }
 
     bool inside_ws() {
@@ -252,10 +283,17 @@ private:
 
         kinematic();
 
+        
+        theta_1 = theta_1;
+        theta_2 = -(theta_2 + M_PI/2);
+        theta_3 = theta_3 - M_PI/2;
+        theta_4 = (theta_4 - M_PI/2);
+        RCLCPP_INFO(this->get_logger(), "Theta1: %.2f, Theta2: %.2f, Theta3: %.2f, Theta4: %.2f, Theta234: %.2f", (theta_1), (theta_2), (theta_3), (theta_4), (theta_234));
+        
         target_angles_.data.resize(5);
-        target_angles_.data[0] = (theta_1);
+        target_angles_.data[0] = (theta_3);
         target_angles_.data[1] = (theta_2);
-        target_angles_.data[2] = (theta_3);
+        target_angles_.data[2] = (theta_1);
         target_angles_.data[3] = (theta_4);
         target_angles_.data[4] = (0.0);
 
