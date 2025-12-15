@@ -1,9 +1,14 @@
 #include <cmath>
 #include <Eigen/Dense>
 #include "rclcpp/rclcpp.hpp"
+#include "rclcpp/clock.hpp"
+#include "rclcpp/duration.hpp"
+#include "rclcpp/time.hpp"
 
-// #include "irc_custom_interfaces/msg/arm_angles.hpp"
-#include "std_msgs/msg/float64_multi_array.hpp"
+#include "std_msgs/msg/header.hpp"
+#include "joint_trajectory_controller/trajectory.hpp"
+#include "trajectory_msgs/msg/joint_trajectory.hpp"
+#include "trajectory_msgs/msg/joint_trajectory_point.hpp"
 #include "irc_custom_interfaces/msg/ps4.hpp"
 
 using namespace std::chrono_literals;
@@ -138,11 +143,11 @@ float mapValue(float x,
 
 class ArmKinematics : public rclcpp::Node {
 private:
-    rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr publisher_;
+    rclcpp::Publisher<trajectory_msgs::msg::JointTrajectory>::SharedPtr publisher_;
     rclcpp::Subscription<irc_custom_interfaces::msg::Ps4>::SharedPtr subscriber_;
     rclcpp::TimerBase::SharedPtr timer_;
 
-    std_msgs::msg::Float64MultiArray target_angles_;
+    // std_msgs::msg::Float64MultiArray target_angles_;
 
     void joint_command_callback(const irc_custom_interfaces::msg::Ps4::SharedPtr msg) {
 
@@ -289,21 +294,27 @@ private:
         theta_3 = theta_3 - M_PI/2;
         theta_4 = (theta_4 - M_PI/2);
         // RCLCPP_INFO(this->get_logger(), "Theta1: %.2f, Theta2: %.2f, Theta3: %.2f, Theta4: %.2f, Theta234: %.2f", (theta_1), (theta_2), (theta_3), (theta_4), (theta_234));
-        
-        target_angles_.data.resize(5);
-        target_angles_.data[0] = (theta_3);
-        target_angles_.data[1] = (theta_2);
-        target_angles_.data[2] = (theta_1);
-        target_angles_.data[3] = (theta_4);
-        target_angles_.data[4] = (0.0);
 
-        publisher_->publish(target_angles_);
+        trajectory_msgs::msg::JointTrajectory traj;
+        traj.joint_names = {
+        "elbow_joint", "shoulder_joint", "turret_joint", "wrist_pitch", "wrist_roll"
+        };
+
+        trajectory_msgs::msg::JointTrajectoryPoint point;
+        point.positions = {theta_3, theta_2, theta_1, theta_4, 0.0};
+        point.time_from_start = rclcpp::Duration::from_seconds(0.5);
+
+        traj.points.push_back(point);
+        traj.header.stamp = this->now();
+
+        publisher_->publish(traj);
+
         
     }
 
 public:
     ArmKinematics() : Node("arm_kinematics_node") {
-        publisher_ = this->create_publisher<std_msgs::msg::Float64MultiArray>("/arm_joints_controller/commands", 10);
+        publisher_ = this->create_publisher<trajectory_msgs::msg::JointTrajectory>("/arm_joints_controller/joint_trajectory", 10);
         
         subscriber_ = this->create_subscription<irc_custom_interfaces::msg::Ps4>(
             "ps4_data_arm",
