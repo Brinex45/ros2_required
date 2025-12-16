@@ -3,33 +3,44 @@
 
     <ros2_control name="Arm" type="system">
         <hardware>
-            <plugin>mock_components/GenericSystem</plugin>
-            <param name="calculate_dynamics">false</param>
-            <!-- <plugin>arm_hardware/ArmHardwareInterface</plugin>
-            <param name="joint1_motor_id">10</param>
-            <param name="joint2_motor_id">20</param>
-            <param name="dynamixel_port">/dev/ttyACM0</param> -->
+            <!-- <plugin>mock_components/GenericSystem</plugin>
+            <param name="calculate_dynamics">false</param> -->
+            <plugin>arm/ArmHardware</plugin>
+            <param name="pid_p">20</param>
+            <param name="pid_d">5</param>
+            <param name="pid_i">0</param>
+            <param name="pid_o">50</param>
         </hardware>
         <joint name="turret_joint">
             <command_interface name="position" />
             <state_interface name="position" />
+            <state_interface name="velocity" />
+            <param name="encoder_counts_per_rev">8192</param>
         </joint>
         <joint name="shoulder_joint">
             <command_interface name="position" />
             <state_interface name="position" />
+            <state_interface name="velocity" />
+            <param name="encoder_counts_per_rev">8192</param>
         </joint>
         <joint name="elbow_joint">
             <command_interface name="position" />
             <state_interface name="position" />
+            <state_interface name="velocity" />
+            <param name="encoder_counts_per_rev">8192</param>
         </joint>
         <joint name="wrist_pitch">
             <command_interface name="position" />
             <state_interface name="position" />
+            <state_interface name="velocity" />
+            <param name="encoder_counts_per_rev">8192</param>
         </joint>
         <joint name="wrist_roll">
             <command_interface name="position" />
             <state_interface name="position" />
+            <state_interface name="velocity" />
+            <param name="encoder_counts_per_rev">8192</param>
         </joint>
     </ros2_control>
-
+ 
 </robot>

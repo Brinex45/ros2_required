@@ -25,7 +25,7 @@ namespace rover_base
             hardware_interface::CallbackReturn::SUCCESS)
         {
             return hardware_interface::CallbackReturn::ERROR;
-        }
+        } 
 
         cfg_.left_wheel_name = info_.hardware_parameters["left_wheel_name"];
         cfg_.right_wheel_name = info_.hardware_parameters["right_wheel_name"];

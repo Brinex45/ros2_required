@@ -1,0 +1,9 @@
+<library path="arm_hardware">
+    <class name="arm/ArmHardware"
+           type="arm::ArmHardware"
+           base_class_type="hardware_interface::SystemInterface">
+        <description>
+            Hardware interface for a arm base
+        </description>
+    </class>
+</library>
