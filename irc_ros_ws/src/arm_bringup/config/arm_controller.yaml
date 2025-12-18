@@ -6,30 +6,10 @@ controller_manager:
       type: joint_state_broadcaster/JointStateBroadcaster
 
     arm_joints_controller:
-      type: joint_trajectory_controller/JointTrajectoryController
+      type: forward_command_controller/ForwardCommandController
 
 arm_joints_controller:
   ros__parameters:
-    joints: 
-      - elbow_joint
-      - shoulder_joint
-      - turret_joint
-      - wrist_pitch
-      - wrist_roll
+    joints: ["elbow_joint", "shoulder_joint", "turret_joint", "wrist_pitch", "wrist_roll"]
 
-    command_interfaces:
-      - position
-
-    state_interfaces:
-      - position
-
-    # gain:
-    #   p: 10
-    #   i: 0.001
-    #   d: 1.0
-
-    constraints:
-      stopped_velocity_tolerance: 0.01
-      goal_time: 0.5
-
-    state_publish_rate: 50
+    interface_name: "position"

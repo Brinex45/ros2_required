@@ -67,10 +67,10 @@ namespace arm{
                 return hardware_interface::CallbackReturn::ERROR;
             }
 
-            if (joint.state_interfaces.size() != 2)
+            if (joint.state_interfaces.size() != 1)
             {
                 RCLCPP_FATAL(rclcpp::get_logger("ArmHardware"),
-                             "Joint '%s' has %zu state interfaces found. 2 expected.", joint.name.c_str(),
+                             "Joint '%s' has %zu state interfaces found. 1 expected.", joint.name.c_str(),
                              joint.state_interfaces.size());
                 return hardware_interface::CallbackReturn::ERROR;
             }
@@ -84,14 +84,14 @@ namespace arm{
                 return hardware_interface::CallbackReturn::ERROR;
             }
 
-            if (joint.state_interfaces[1].name != hardware_interface::HW_IF_VELOCITY)
-            {
-                RCLCPP_FATAL(
-                    rclcpp::get_logger("ArmHardware"),
-                    "Joint '%s' have '%s' as second state interface. '%s' expected.", joint.name.c_str(),
-                    joint.state_interfaces[1].name.c_str(), hardware_interface::HW_IF_VELOCITY);
-                return hardware_interface::CallbackReturn::ERROR;
-            }
+            // if (joint.state_interfaces[1].name != hardware_interface::HW_IF_VELOCITY)
+            // {
+            //     RCLCPP_FATAL(
+            //         rclcpp::get_logger("ArmHardware"),
+            //         "Joint '%s' have '%s' as second state interface. '%s' expected.", joint.name.c_str(),
+            //         joint.state_interfaces[1].name.c_str(), hardware_interface::HW_IF_VELOCITY);
+            //     return hardware_interface::CallbackReturn::ERROR;
+            // }
         }
 
         return hardware_interface::CallbackReturn::SUCCESS;
@@ -105,8 +105,8 @@ namespace arm{
         {
             state_interfaces.emplace_back(hardware_interface::StateInterface(
                 joint[i].name, hardware_interface::HW_IF_POSITION, &joint[i].pos));
-            state_interfaces.emplace_back(hardware_interface::StateInterface(
-                joint[i].name, hardware_interface::HW_IF_VELOCITY, &joint[i].vel));
+            // state_interfaces.emplace_back(hardware_interface::StateInterface(
+            //     joint[i].name, hardware_interface::HW_IF_VELOCITY, &joint[i].vel));
         }
 
         return state_interfaces;
@@ -224,40 +224,31 @@ namespace arm{
     }
 
     hardware_interface::return_type ArmHardware::read(
-        const rclcpp::Time & /*time*/, const rclcpp::Duration &period)
+        const rclcpp::Time &, const rclcpp::Duration &period)
     {
-        if (!encoder_readings_)
-        {
-            // RCLCPP_WARN(rclcpp::get_logger(""), "encoder_readings_ is not initialized yet!");
-            // return;
-        }
-        else if (encoder_readings_->data.empty())
-        {
-            RCLCPP_WARN(rclcpp::get_logger(""), "Received empty Float32MultiArray!");
-            // return;
-        }
-        else
-        {
-            size_t n = info_.joints.size();
-            for (size_t i = 0; i < n; ++i) {
-                // Assuming encoder_readings_ contains position data in counts
-                joint[i].enc = encoder_readings_->data[i];
-            }
+        double delta_seconds = period.seconds();
+        if (delta_seconds <= 1e-6) {
+            return hardware_interface::return_type::OK;
         }
 
-        double delta_seconds = period.seconds();
+        if (!encoder_readings_ || encoder_readings_->data.empty()) {
+            return hardware_interface::return_type::OK;
+        }
 
         size_t n = info_.joints.size();
-
-        std::vector<double> prev_pos(n);
+        if (encoder_readings_->data.size() < n) {
+            RCLCPP_WARN(rclcpp::get_logger("ArmHardware"),
+                        "Encoder data size (%zu) < joints (%zu)",
+                        encoder_readings_->data.size(), n);
+            return hardware_interface::return_type::OK;
+        }
 
         for (size_t i = 0; i < n; ++i) {
-            // Update joint position and velocity
+            joint[i].enc = encoder_readings_->data[i];
+
             double new_pos = joint[i].calc_enc_angle();
             joint[i].vel = (new_pos - joint[i].pos) / delta_seconds;
             joint[i].pos = new_pos;
-
-            prev_pos[i] = joint[i].pos;
         }
 
         return hardware_interface::return_type::OK;
@@ -273,6 +264,7 @@ namespace arm{
 
         for (size_t i = 0; i < n; ++i) {
             cmd_msg->data[i] = static_cast<float>(joint[i].cmd);
+            RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Joint %s command: %f", joint[i].name.c_str(), joint[i].cmd);
         }
 
         joint_cmds_pub_->publish(std::move(cmd_msg));
