@@ -8,9 +8,9 @@ namespace arm{
     {
         hardware_node_ = std::make_shared<rclcpp::Node>("arm_hardware");
 
-        encoder_readings_sub_ = hardware_node_->create_subscription<std_msgs::msg::Float32MultiArray>(
+        encoder_readings_sub_ = hardware_node_->create_subscription<std_msgs::msg::Int64MultiArray>(
             "/arm_encoders", 10,
-            [this](const std_msgs::msg::Float32MultiArray::SharedPtr msg)
+            [this](const std_msgs::msg::Int64MultiArray::SharedPtr msg)
             {
                 encoder_readings_ = msg;
                 micro_ros_active_ = true;
@@ -119,7 +119,7 @@ namespace arm{
         for (size_t i = 0; i < info_.joints.size(); i++)
         {
             command_interfaces.emplace_back(hardware_interface::CommandInterface(
-                joint[i].name, hardware_interface::HW_IF_POSITION, &joint[i].cmd));
+                joint[i].name, hardware_interface::HW_IF_VELOCITY, &joint[i].cmd));
         }
 
         return command_interfaces;
@@ -263,8 +263,29 @@ namespace arm{
         cmd_msg->data.resize(n);
 
         for (size_t i = 0; i < n; ++i) {
-            cmd_msg->data[i] = static_cast<float>(joint[i].cmd);
-            RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Joint %s command: %f", joint[i].name.c_str(), joint[i].cmd);
+            // cmd_msg->data[i] = static_cast<float>(joint[i].cmd);
+            // RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Joint %s command: %f", joint[i].name.c_str(), joint[i].cmd);
+
+            float pos = static_cast<float>(joint[i].cmd);
+            float speed = (joint[i].pos - pos) * (180.0f / 3.14159265f); // Convert rad to deg
+
+            switch (i){
+            case 0:
+                cmd_msg->data[i] = constrain(-speed * 35, -100.0f, 100.0f);
+                break;
+            case 1:
+                cmd_msg->data[i] = constrain(-speed * 200, -255.0f, 255.0f);
+                break;
+            case 2:
+                cmd_msg->data[i] = constrain(-speed * 30, -70.0f, 70.0f);
+                break;  
+            case 3:
+                cmd_msg->data[i] = constrain(-speed * 12, -30.0f, 30.0f);
+                break;
+            case 4:
+                cmd_msg->data[i] = constrain(-speed, -70.0f, 70.0f);
+                break;
+            }
         }
 
         joint_cmds_pub_->publish(std::move(cmd_msg));

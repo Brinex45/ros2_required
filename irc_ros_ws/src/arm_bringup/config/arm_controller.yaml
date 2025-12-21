@@ -12,4 +12,6 @@ arm_joints_controller:
   ros__parameters:
     joints: ["elbow_joint", "shoulder_joint", "turret_joint", "wrist_pitch", "wrist_roll"]
 
-    interface_name: "position"
+    interface_name: "velocity"
+
+    # enable_closed_loop_control: false

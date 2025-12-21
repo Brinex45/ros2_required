@@ -17,6 +17,7 @@
 #include "std_msgs/msg/int32.hpp"
 #include "std_msgs/msg/bool.hpp"
 #include "geometry_msgs/msg/twist.hpp"
+#include "std_msgs/msg/int64_multi_array.hpp"
 #include "std_msgs/msg/float32_multi_array.hpp"
 
 #include "visibility_control.h"
@@ -80,17 +81,23 @@ namespace arm
 
         rclcpp::Node::SharedPtr hardware_node_;
 
-        rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr encoder_readings_sub_; // convert it to a custom msg for encoder data
+        rclcpp::Subscription<std_msgs::msg::Int64MultiArray>::SharedPtr encoder_readings_sub_; // convert it to a custom msg for encoder data
         rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr check_sub_;
         rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr joint_cmds_pub_;
         rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr pid_values_pub_;
 
-        std_msgs::msg::Float32MultiArray::SharedPtr encoder_readings_;
+        std_msgs::msg::Int64MultiArray::SharedPtr encoder_readings_;
         std::thread spin_thread_;                   // Thread for spinning the ROS node
         std::atomic<bool> stop_spin_thread_{false}; // Flag to stop spinning safely
         bool micro_ros_active_ = false;
         bool check_msg_ = false;
     };
 } // namespace arm
+
+inline double constrain(double val, double min_val, double max_val) {
+    if (val < min_val) return min_val;
+    if (val > max_val) return max_val;
+    return val;
+}
 
 #endif
