@@ -67,6 +67,14 @@ namespace arm{
                 return hardware_interface::CallbackReturn::ERROR;
             }
 
+            if (joint.command_interfaces[0].name != hardware_interface::HW_IF_VELOCITY)
+            {
+                RCLCPP_FATAL(rclcpp::get_logger("RoverBaseHardware"),
+                             "Joint '%s' have %s command interfaces found. '%s' expected.", joint.name.c_str(),
+                             joint.command_interfaces[0].name.c_str(), hardware_interface::HW_IF_VELOCITY);
+                return hardware_interface::CallbackReturn::ERROR;
+            }
+
             if (joint.state_interfaces.size() != 1)
             {
                 RCLCPP_FATAL(rclcpp::get_logger("ArmHardware"),
@@ -226,29 +234,53 @@ namespace arm{
     hardware_interface::return_type ArmHardware::read(
         const rclcpp::Time &, const rclcpp::Duration &period)
     {
+        size_t n = info_.joints.size();
+
         double delta_seconds = period.seconds();
         if (delta_seconds <= 1e-6) {
             return hardware_interface::return_type::OK;
         }
 
         if (!encoder_readings_ || encoder_readings_->data.empty()) {
-            return hardware_interface::return_type::OK;
+            // return hardware_interface::return_type::OK;
         }
+        else{
+            for (size_t i = 0; i < n; ++i) {
+                joint[i].enc = encoder_readings_->data[i];
+            }
+        }
+        
 
-        size_t n = info_.joints.size();
-        if (encoder_readings_->data.size() < n) {
-            RCLCPP_WARN(rclcpp::get_logger("ArmHardware"),
-                        "Encoder data size (%zu) < joints (%zu)",
-                        encoder_readings_->data.size(), n);
-            return hardware_interface::return_type::OK;
-        }
+        // if (encoder_readings_->data.size() < n) {
+        //     RCLCPP_WARN(rclcpp::get_logger("ArmHardware"),
+        //                 "Encoder data size (%zu) < joints (%zu)",
+        //                 encoder_readings_->data.size(), n);
+        //     return hardware_interface::return_type::OK;
+        // }
 
         for (size_t i = 0; i < n; ++i) {
-            joint[i].enc = encoder_readings_->data[i];
+            // joint[i].enc = encoder_readings_->data[i];
 
             double new_pos = joint[i].calc_enc_angle();
             joint[i].vel = (new_pos - joint[i].pos) / delta_seconds;
-            joint[i].pos = new_pos;
+
+            switch (i){
+            case 0:
+                joint[i].pos = new_pos - 0.3502887785434723;
+                break;
+            case 1:
+                joint[i].pos = new_pos + 0.28972944617271423;
+                break;
+            case 2:
+                joint[i].pos = new_pos;
+                break;  
+            case 3:
+                joint[i].pos = new_pos + 0.640018105506897;
+                break;
+            case 4:
+                joint[i].pos = new_pos;
+                break;
+            }
         }
 
         return hardware_interface::return_type::OK;
@@ -264,15 +296,15 @@ namespace arm{
 
         for (size_t i = 0; i < n; ++i) {
             // cmd_msg->data[i] = static_cast<float>(joint[i].cmd);
-            // RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Joint %s command: %f", joint[i].name.c_str(), joint[i].cmd);
-
+            
             float pos = static_cast<float>(joint[i].cmd);
             float speed = (joint[i].pos - pos) * (180.0f / 3.14159265f); // Convert rad to deg
+            RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Joint %s command: %f", joint[i].name.c_str(), speed);
 
             switch (i){
             case 0:
                 cmd_msg->data[i] = constrain(-speed * 35, -100.0f, 100.0f);
-                break;
+                break;5
             case 1:
                 cmd_msg->data[i] = constrain(-speed * 200, -255.0f, 255.0f);
                 break;

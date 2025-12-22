@@ -52,9 +52,9 @@ Eigen::Matrix4d translate(double x, double y, double z) {
 
 Eigen::Matrix4d home_matrix = [] {
     Eigen::Matrix4d H;
-    H << 0, 0, 1, 530,
+    H << 0, 0, 1, 570,
          0, 1, 0, 0,
-        -1, 0, 0, 487.5,
+        -1, 0, 0, 200,
          0, 0, 0, 1;
     return H;
 }();
