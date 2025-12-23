@@ -247,6 +247,7 @@ namespace arm{
         else{
             for (size_t i = 0; i < n; ++i) {
                 joint[i].enc = encoder_readings_->data[i];
+                // RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Joint %s enc data: %f", joint[i].name.c_str(), joint[i].enc);
             }
         }
         
@@ -266,16 +267,16 @@ namespace arm{
 
             switch (i){
             case 0:
-                joint[i].pos = new_pos - 0.3502887785434723;
+                joint[i].pos = new_pos;
                 break;
             case 1:
-                joint[i].pos = new_pos + 0.28972944617271423;
+                joint[i].pos = new_pos;
                 break;
             case 2:
                 joint[i].pos = new_pos;
                 break;  
             case 3:
-                joint[i].pos = new_pos + 0.640018105506897;
+                joint[i].pos = new_pos;
                 break;
             case 4:
                 joint[i].pos = new_pos;
@@ -299,12 +300,13 @@ namespace arm{
             
             float pos = static_cast<float>(joint[i].cmd);
             float speed = (joint[i].pos - pos) * (180.0f / 3.14159265f); // Convert rad to deg
-            RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Joint %s command: %f", joint[i].name.c_str(), speed);
+            RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Joint %s command: %f, %f, %f", joint[i].name.c_str(), pos, joint[i].pos, speed);
+            // RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Joint %s enc data: %f", joint[i].name.c_str(), joint[i].enc);
 
             switch (i){
             case 0:
                 cmd_msg->data[i] = constrain(-speed * 35, -100.0f, 100.0f);
-                break;5
+                break;
             case 1:
                 cmd_msg->data[i] = constrain(-speed * 200, -255.0f, 255.0f);
                 break;
