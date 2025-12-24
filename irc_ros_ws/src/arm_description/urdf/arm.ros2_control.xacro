@@ -30,7 +30,7 @@
             <command_interface name="velocity" />
             <state_interface name="position" />
             <state_interface name="velocity" />
-            <param name="encoder_counts_per_rev">8192</param>
+            <param name="encoder_counts_per_rev">460000</param>
         </joint>
         <joint name="wrist_pitch">
             <!-- <command_interface name="position" /> -->
