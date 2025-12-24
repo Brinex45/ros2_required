@@ -136,15 +136,15 @@
 </joint>
 
 <joint name="shoulder_joint" type="revolute">
-  <origin xyz="1e-06 0.0 0.0355" rpy="0 0 0"/>
+  <origin xyz="1e-06 0.0 0.0355" rpy="-0.289729 0 0"/>
   <parent link="waist_1"/>
   <child link="shoulder_1"/>
-  <axis xyz="0.999968 0.007954 0.0"/>
+  <axis xyz="-0.999968 -0.007954 0.0"/>
   <limit lower="${-pi/2}" upper="-0.17" effort="0.0" velocity="0.0"/>
 </joint>
 
 <joint name="elbow_joint" type="revolute">
-  <origin xyz="1e-06 -0.000146 0.45" rpy="0 0 0"/>
+  <origin xyz="1e-06 -0.000146 0.45" rpy="-0.350289 0 0"/>
   <parent link="shoulder_1"/>
   <child link="forearm_1"/>
   <axis xyz="-0.999968 -0.007954 -0.0"/>
@@ -152,7 +152,7 @@
 </joint>
 
 <joint name="wrist_pitch" type="revolute">
-  <origin xyz="-0.003579 0.449983 0.001676" rpy="0 0 0"/>
+  <origin xyz="-0.003579 0.449983 0.001676" rpy="0.640018 0 0"/>
   <parent link="forearm_1"/>
   <child link="wrist_1_1"/>
   <axis xyz="-0.999968 -0.007954 -0.0"/>

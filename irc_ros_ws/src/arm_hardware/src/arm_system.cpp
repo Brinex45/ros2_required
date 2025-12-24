@@ -67,6 +67,14 @@ namespace arm{
                 return hardware_interface::CallbackReturn::ERROR;
             }
 
+            // if (joint.command_interfaces[0].name != hardware_interface::HW_IF_POSITION)
+            // {
+            //     RCLCPP_FATAL(rclcpp::get_logger("RoverBaseHardware"),
+            //                  "Joint '%s' have %s command interfaces found. '%s' expected.", joint.name.c_str(),
+            //                  joint.command_interfaces[0].name.c_str(), hardware_interface::HW_IF_POSITION);
+            //     return hardware_interface::CallbackReturn::ERROR;
+            // }
+
             if (joint.command_interfaces[0].name != hardware_interface::HW_IF_VELOCITY)
             {
                 RCLCPP_FATAL(rclcpp::get_logger("RoverBaseHardware"),
@@ -75,7 +83,7 @@ namespace arm{
                 return hardware_interface::CallbackReturn::ERROR;
             }
 
-            if (joint.state_interfaces.size() != 1)
+            if (joint.state_interfaces.size() != 2)
             {
                 RCLCPP_FATAL(rclcpp::get_logger("ArmHardware"),
                              "Joint '%s' has %zu state interfaces found. 1 expected.", joint.name.c_str(),
@@ -92,14 +100,14 @@ namespace arm{
                 return hardware_interface::CallbackReturn::ERROR;
             }
 
-            // if (joint.state_interfaces[1].name != hardware_interface::HW_IF_VELOCITY)
-            // {
-            //     RCLCPP_FATAL(
-            //         rclcpp::get_logger("ArmHardware"),
-            //         "Joint '%s' have '%s' as second state interface. '%s' expected.", joint.name.c_str(),
-            //         joint.state_interfaces[1].name.c_str(), hardware_interface::HW_IF_VELOCITY);
-            //     return hardware_interface::CallbackReturn::ERROR;
-            // }
+            if (joint.state_interfaces[1].name != hardware_interface::HW_IF_VELOCITY)
+            {
+                RCLCPP_FATAL(
+                    rclcpp::get_logger("ArmHardware"),
+                    "Joint '%s' have '%s' as second state interface. '%s' expected.", joint.name.c_str(),
+                    joint.state_interfaces[1].name.c_str(), hardware_interface::HW_IF_VELOCITY);
+                return hardware_interface::CallbackReturn::ERROR;
+            }
         }
 
         return hardware_interface::CallbackReturn::SUCCESS;
@@ -113,8 +121,8 @@ namespace arm{
         {
             state_interfaces.emplace_back(hardware_interface::StateInterface(
                 joint[i].name, hardware_interface::HW_IF_POSITION, &joint[i].pos));
-            // state_interfaces.emplace_back(hardware_interface::StateInterface(
-            //     joint[i].name, hardware_interface::HW_IF_VELOCITY, &joint[i].vel));
+            state_interfaces.emplace_back(hardware_interface::StateInterface(
+                joint[i].name, hardware_interface::HW_IF_VELOCITY, &joint[i].vel));
         }
 
         return state_interfaces;
