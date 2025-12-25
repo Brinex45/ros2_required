@@ -33,27 +33,40 @@ namespace arm{
 
         cfg_.joint_names.resize(n);
         cfg_.enc_counts_per_rev.resize(n);
+        cfg_.pid_p.resize(n);
+        cfg_.pid_d.resize(n);
+        cfg_.pid_i.resize(n);
+        cfg_.max_pwm.resize(n);
+        cfg_.min_pwm.resize(n);
 
         for (size_t i = 0; i < n; ++i) {
             cfg_.joint_names[i] = info_.joints[i].name;
             cfg_.enc_counts_per_rev[i] = std::stoi(info_.joints[i].parameters.at("encoder_counts_per_rev"));
-        }
+            if (info_.joints[i].parameters.count("pid_p") > 0)
+            {
+                cfg_.pid_p[i] = std::stod(info_.joints[i].parameters.at("pid_p"));
+                cfg_.pid_d[i] = std::stod(info_.joints[i].parameters.at("pid_d"));
+                cfg_.pid_i[i] = std::stod(info_.joints[i].parameters.at("pid_i"));
+            }
+            else
+            {
+                RCLCPP_INFO(rclcpp::get_logger("RoverBaseHardware"), "PID values not supplied for %s, using defaults.", cfg_.joint_names[i].c_str());
+            }
 
-        if (info_.hardware_parameters.count("pid_p") > 0)
-        {
-            cfg_.pid_p = std::stoi(info_.hardware_parameters["pid_p"]);
-            cfg_.pid_d = std::stod(info_.hardware_parameters["pid_d"]);
-            cfg_.pid_i = std::stoi(info_.hardware_parameters["pid_i"]);
-            cfg_.pid_o = std::stoi(info_.hardware_parameters["pid_o"]);
-        }
-        else
-        {
-            RCLCPP_INFO(rclcpp::get_logger("RoverBaseHardware"), "PID values not supplied, using defaults.");
+            if (info_.joints[i].parameters.count("max_pwm") > 0)
+            {
+                cfg_.max_pwm[i] = std::stod(info_.joints[i].parameters.at("max_pwm"));
+                cfg_.min_pwm[i] = std::stod(info_.joints[i].parameters.at("min_pwm"));
+            }
+            else
+            {
+                RCLCPP_INFO(rclcpp::get_logger("RoverBaseHardware"), "Max and min pwm values not supplied for %s, using defaults.", cfg_.joint_names[i].c_str());
+            }
         }
 
         // Initialize joints
         for (size_t i = 0; i < n; ++i) {
-            joint[i].setup(cfg_.joint_names[i], cfg_.enc_counts_per_rev[i]);
+            joint[i].setup(cfg_.joint_names[i], cfg_.enc_counts_per_rev[i], cfg_.pid_p[i], cfg_.pid_d[i], cfg_.pid_i[i], cfg_.max_pwm[i], cfg_.min_pwm[i]);
         }
 
         for (const hardware_interface::ComponentInfo &joint : info_.joints)
@@ -187,7 +200,6 @@ namespace arm{
         encoder_readings_sub_.reset();
         joint_cmds_pub_.reset();
         check_sub_.reset();
-        pid_values_pub_.reset();
 
         // Stop the spin thread safely
         stop_spin_thread_ = true;
@@ -209,15 +221,6 @@ namespace arm{
         rclcpp::sleep_for(std::chrono::seconds(2));
 
         RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Micro-ROS node is active.");
-
-        if (cfg_.pid_p > 0)
-        {
-            pid_values_pub_ = hardware_node_->create_publisher<std_msgs::msg::Float32MultiArray>("/set_pid", 10);
-            auto pid_msg = std_msgs::msg::Float32MultiArray();
-            pid_msg.data = {cfg_.pid_p, cfg_.pid_d, cfg_.pid_i, cfg_.pid_o};
-            pid_values_pub_->publish(pid_msg);
-            RCLCPP_INFO(rclcpp::get_logger("RoverBaseHardware"), "PID values sent.");
-        }
 
         RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Successfully activated!");
 
@@ -272,62 +275,55 @@ namespace arm{
 
             double new_pos = joint[i].calc_enc_angle();
             joint[i].vel = (new_pos - joint[i].pos) / delta_seconds;
+            joint[i].pos = new_pos;
 
-            switch (i){
-            case 0:
-                joint[i].pos = new_pos;
-                break;
-            case 1:
-                joint[i].pos = new_pos;
-                break;
-            case 2:
-                joint[i].pos = new_pos;
-                break;  
-            case 3:
-                joint[i].pos = new_pos;
-                break;
-            case 4:
-                joint[i].pos = new_pos;
-                break;
-            }
         }
 
         return hardware_interface::return_type::OK;
     }
 
     hardware_interface::return_type ArmHardware::write(
-        const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
+        const rclcpp::Time & time, const rclcpp::Duration & period)
     {
+        (void)time;
+
         size_t n = info_.joints.size();
 
         auto cmd_msg = std::make_unique<std_msgs::msg::Float32MultiArray>();
         cmd_msg->data.resize(n);
 
         for (size_t i = 0; i < n; ++i) {
+
             // cmd_msg->data[i] = static_cast<float>(joint[i].cmd);
             
-            float pos = static_cast<float>(joint[i].cmd);
-            float speed = (joint[i].pos - pos) * (180.0f / 3.14159265f); // Convert rad to deg
-            RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Joint %s command: %f, %f, %f", joint[i].name.c_str(), pos, joint[i].pos, speed);
-            // RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Joint %s enc data: %f", joint[i].name.c_str(), joint[i].enc);
+            // float pos = static_cast<float>(joint[i].cmd);
+            // float speed = (joint[i].pos - pos) * (180.0f / 3.14159265f); // Convert rad to deg
 
-            switch (i){
-            case 0:
-                cmd_msg->data[i] = constrain(-speed * 35, -100.0f, 100.0f);
-                break;
-            case 1:
-                cmd_msg->data[i] = constrain(-speed * 200, -255.0f, 255.0f);
-                break;
-            case 2:
-                cmd_msg->data[i] = constrain(-speed * 30, -70.0f, 70.0f);
-                break;  
-            case 3:
-                cmd_msg->data[i] = constrain(-speed * 12, -30.0f, 30.0f);
-                break;
-            case 4:
-                cmd_msg->data[i] = constrain(-speed, -70.0f, 70.0f);
-                break;
-            }
+            // switch (i){
+            // case 0:
+            //     cmd_msg->data[i] = constrain(-speed * 35, -100.0f, 100.0f);
+            //     break;
+            // case 1:
+            //     cmd_msg->data[i] = constrain(-speed * 200, -255.0f, 255.0f);
+            //     break;
+            // case 2:
+            //     cmd_msg->data[i] = constrain(-speed * 30, -70.0f, 70.0f);
+            //     break;  
+            // case 3:
+            //     cmd_msg->data[i] = constrain(-speed * 12, -30.0f, 30.0f);
+            //     break;
+            // case 4:
+            //     cmd_msg->data[i] = constrain(-speed, -70.0f, 70.0f);
+            //     break;
+            // }
+
+            joint[i].cmd_pwm = joint[i].calc_pwm(period.seconds() * 1000);
+            cmd_msg->data[i] = joint[i].cmd_pwm;
+
+            RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Joint %s pid: %f, %f, %f", joint[i].name.c_str(), joint[i].i_error, period.seconds() * 1000, joint[i].cmd_pwm);
+            // RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Joint %s command: %f, %f, %f", joint[i].name.c_str(), joint[i].pos, joint[i].cmd, joint[i].cmd_pwm);
+            // RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Joint %s enc data: %f", joint[i].name.c_str(), joint[i].enc);
+            
         }
 
         joint_cmds_pub_->publish(std::move(cmd_msg));

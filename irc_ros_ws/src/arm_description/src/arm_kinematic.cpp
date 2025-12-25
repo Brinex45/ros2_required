@@ -61,8 +61,11 @@ Eigen::Matrix4d home_matrix = [] {
 
 Eigen::Matrix4d Transform_matrix = home_matrix;
 
-#define unit_trans 1
-#define unit_rot 0.5
+// #define unit_trans 1
+// #define unit_rot 0.5
+
+#define unit_trans 0.1
+#define unit_rot 0.1
 
 #define d1 37.5
 #define d5 80.5
@@ -328,7 +331,7 @@ public:
         );
         
         timer_ = this->create_wall_timer(
-            0.01s,
+            0.02s,
             std::bind(&ArmKinematics::publish_arm_angles, this)
         );
 

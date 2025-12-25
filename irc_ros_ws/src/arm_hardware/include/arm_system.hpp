@@ -32,10 +32,11 @@ namespace arm
             std::vector<std::string> joint_names;
             std::vector<int> enc_counts_per_rev;
 
-            float pid_p = 0;
-            float pid_d = 0;
-            float pid_i = 0;
-            float pid_o = 0;
+            std::vector<double> pid_p;
+            std::vector<double> pid_d;
+            std::vector<double> pid_i;
+            std::vector<double> max_pwm;
+            std::vector<double> min_pwm;
         };
 
     public:
