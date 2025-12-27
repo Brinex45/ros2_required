@@ -61,11 +61,11 @@ Eigen::Matrix4d home_matrix = [] {
 
 Eigen::Matrix4d Transform_matrix = home_matrix;
 
-// #define unit_trans 1
-// #define unit_rot 0.5
+#define unit_trans 1
+#define unit_rot 0.5
 
-#define unit_trans 0.1
-#define unit_rot 0.1
+// #define unit_trans 0.1
+// #define unit_rot 0.1
 
 #define d1 37.5
 #define d5 80.5
@@ -297,7 +297,7 @@ private:
         theta_2 = (theta_2 + M_PI/2) - 0.289729;
         theta_3 = theta_3 - M_PI/2 - 0.350289;
         theta_4 = (theta_4 - M_PI/2) + 0.640018;
-        // RCLCPP_INFO(this->get_logger(), "Theta1: %.2f, Theta2: %.2f, Theta3: %.2f, Theta4: %.2f, Theta234: %.2f", (theta_1), (theta_2), (theta_3), (theta_4), (theta_234));
+        RCLCPP_INFO(this->get_logger(), "Theta1: %.2f, Theta2: %.2f, Theta3: %.2f, Theta4: %.2f, Theta234: %.2f", (theta_1), (theta_2), (theta_3), (theta_4), (theta_234));
 
         // trajectory_msgs::msg::JointTrajectory traj;
         // traj.joint_names = {

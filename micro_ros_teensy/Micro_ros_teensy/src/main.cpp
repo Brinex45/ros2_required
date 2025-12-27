@@ -114,7 +114,7 @@ void setup() {
   RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
 
   // create node
-  RCCHECK(rclc_node_init_default(&node, "micro_ros_platformio_node", "", &support));
+  RCCHECK(rclc_node_init_default(&node, "micro_ros_chassis", "", &support));
 
   // create publisher
   RCCHECK(rclc_publisher_init_default(

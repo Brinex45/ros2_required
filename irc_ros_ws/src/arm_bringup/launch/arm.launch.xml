@@ -9,7 +9,7 @@
                value="$(command 'xacro $(var urdf_path)')" />
     </node>
 
-    <node pkg="ps4" exec="ps4_data_node" name="ps4_data_node"/>
+    <!-- <node pkg="ps4" exec="ps4_data_node" name="ps4_data_node"/> -->
 
     <node pkg="arm_description" exec="arm_kinematics_node" name="arm_kinematics_node"/>
 
@@ -19,7 +19,7 @@
         <param from="$(find-pkg-share arm_bringup)/config/arm_controller.yaml" />
     </node>
 
-    <node pkg="controller_manager" exec="spawner" args="joint_state_broadcaster" />
+    <!-- <node pkg="controller_manager" exec="spawner" args="joint_state_broadcaster" /> -->
 
     <node pkg="controller_manager" exec="spawner" args="arm_joints_controller" />
 

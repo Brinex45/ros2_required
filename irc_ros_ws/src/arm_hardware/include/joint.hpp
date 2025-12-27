@@ -49,7 +49,7 @@ class Joint
 
     inline double constrain_pwm(double val) {
         if (val < min_pwm) return min_pwm;
-        if (val > max_pwm) return min_pwm;
+        if (val > max_pwm) return max_pwm;
         return val;
     }
 

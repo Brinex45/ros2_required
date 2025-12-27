@@ -85,7 +85,7 @@ namespace arm
         rclcpp::Subscription<std_msgs::msg::Int64MultiArray>::SharedPtr encoder_readings_sub_; // convert it to a custom msg for encoder data
         rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr check_sub_;
         rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr joint_cmds_pub_;
-        rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr pid_values_pub_;
+        // rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr pid_values_pub_;
 
         std_msgs::msg::Int64MultiArray::SharedPtr encoder_readings_;
         std::thread spin_thread_;                   // Thread for spinning the ROS node

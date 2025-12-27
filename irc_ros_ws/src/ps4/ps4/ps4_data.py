@@ -36,7 +36,7 @@ class IrcPs4(Node):
             self.get_logger().info(f"Using joystick: {js.get_name()}")
 
 
-    def ps_data(self, joystick_id=0):
+    def ps_data(self, joystick_id):
         pygame.event.pump()
 
         js = self.joysticks[joystick_id]
@@ -60,17 +60,21 @@ class IrcPs4(Node):
         
         
     def publish_ps_data(self): 
-        axes, buttons = self.ps_data(0)
+        axes_c, buttons_c = self.ps_data(0)
+        axes_a, buttons_a = self.ps_data(1)
 
-        msg = Ps4()
+        msg_c = Ps4()
+        msg_a = Ps4()
 
-        msg.ps4_data_analog = axes[:7] + [0.0] * (7 - len(axes))   # pad if fewer than 7
-        msg.ps4_data_buttons = buttons[:16] + [False] * (16 - len(buttons))  # pad if fewer than 16
+        msg_c.ps4_data_analog = axes_c[:7] + [0.0] * (7 - len(axes_c))   # pad if fewer than 7
+        msg_c.ps4_data_buttons = buttons_c[:16] + [False] * (16 - len(buttons_c))  # pad if fewer than 16
 
-        self.data.publish(msg) 
-        self.data_1.publish(msg)
-        # self.get_logger().info(f'Published Ps4 message: {msg}')
+        msg_a.ps4_data_analog = axes_a[:7] + [0.0] * (7 - len(axes_a))   # pad if fewer than 7
+        msg_a.ps4_data_buttons = buttons_a[:16] + [False] * (16 - len(buttons_a))  # pad if fewer than 16
 
+        self.data.publish(msg_c) 
+        self.data_1.publish(msg_a)
+        # self.get_logger().info(f'Published Ps4 message: {msg_a}')
 
                 
 def main(args=None): 
