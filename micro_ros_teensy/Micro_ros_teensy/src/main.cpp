@@ -102,53 +102,53 @@ void timer_callback(rcl_timer_t * timer, int64_t last_call_time) {
 
 void setup() {
   // Configure serial transport
+  delay(2000);
   Serial.begin(115200);
   set_microros_serial_transports(Serial);
   delay(2000);
 
-  pinMode(2, OUTPUT);
-
   allocator = rcl_get_default_allocator();
-
+  
   //create init_options
   RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
-
+  
   // create node
   RCCHECK(rclc_node_init_default(&node, "micro_ros_chassis", "", &support));
-
+  
   // create publisher
   RCCHECK(rclc_publisher_init_default(
     &publisher,
     &node,
     ROSIDL_GET_MSG_TYPE_SUPPORT(irc_interfaces, msg, Ps4),
     "micro_ros_platformio_node_publisher"));
-
-  // create subscription
+    
+    // create subscription
   RCCHECK(rclc_subscription_init_default(
     &subscription,
     &node,
     ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist),
     "/cmd_vel"));
-
-  // create timer,
+      
+      // create timer,
   const unsigned int timer_timeout = 0.05;
   RCCHECK(rclc_timer_init_default(
     &timer,
     &support,
     RCL_MS_TO_NS(timer_timeout),
     timer_callback));
-
+        
+        
+        // create executor
+  RCCHECK(rclc_executor_init(&executor, &support.context, 2, &allocator));
+  RCCHECK(rclc_executor_add_timer(&executor, &timer));
+  RCCHECK(rclc_executor_add_subscription(
+    &executor,
+    &subscription,
+    &twist_msg,
+    &subscription_callback,
+    ON_NEW_DATA));
     
-    // create executor
-    RCCHECK(rclc_executor_init(&executor, &support.context, 2, &allocator));
-    RCCHECK(rclc_executor_add_timer(&executor, &timer));
-    RCCHECK(rclc_executor_add_subscription(
-      &executor,
-      &subscription,
-      &twist_msg,
-      &subscription_callback,
-      ON_NEW_DATA));
-
+    digitalWrite(13, HIGH); // Indicate micro-ROS is running
 }
 
 void loop() {

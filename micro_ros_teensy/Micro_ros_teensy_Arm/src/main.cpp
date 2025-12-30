@@ -131,6 +131,7 @@ void timer_callback(rcl_timer_t * timer, int64_t last_call_time) {
 
 void setup() {
   // Configure serial transport
+  delay(2000);
   Serial.begin(115200);
   set_microros_serial_transports(Serial);
   delay(2000);
@@ -224,6 +225,8 @@ void setup() {
       &joint_pwm,
       &subscription_callback,
       ON_NEW_DATA));
+
+    digitalWrite(13, HIGH); // Indicate micro-ROS is running
 
 }
 

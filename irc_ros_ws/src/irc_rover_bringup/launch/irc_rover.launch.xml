@@ -1,0 +1,43 @@
+<launch>
+    <let name="urdf_path" 
+         value="$(find-pkg-share irc_rover_description)/urdf/kartikeya.xacro" />
+    <let name="rviz_config_path"
+         value="$(find-pkg-share irc_rover_bringup)/rviz2/display.rviz" />
+    <let name="joy_params"
+         value="$(find-pkg-share rover_base_bringup)/config/joystick.yaml" />
+
+    <node pkg="robot_state_publisher" exec="robot_state_publisher">
+        <param name="robot_description"
+               value="$(command 'xacro $(var urdf_path)')" />
+    </node>
+ 
+    <node pkg="ps4" exec="ps4_data_node" name="ps4_data_node"/>
+
+    <node pkg="ps4" exec="ps4_data_to_twist" name="ps4_data_to_twist">
+        <param from="$(var joy_params)" />
+    </node>
+
+    <node pkg="teleop_twist_joy" exec="teleop_node" name="teleop_node" output="screen">
+        <param from="$(var joy_params)" />
+        <remap from="/cmd_vel" to="/unstamped_vel" />
+    </node>
+
+    <node pkg="rover_base_description" exec="twist_to_stamped" name="twist_to_stamped" output="screen" />
+
+    <node pkg="arm_description" exec="arm_kinematics_node" name="arm_kinematics_node"/>
+
+    <!-- <node pkg="joint_state_publisher_gui" exec="joint_state_publisher_gui"/> -->
+
+    <node pkg="controller_manager" exec="ros2_control_node">
+        <param from="$(find-pkg-share irc_rover_bringup)/config/irc_rover_controller.yaml" />
+    </node>
+
+    <node pkg="controller_manager" exec="spawner" args="joint_state_broadcaster" />
+
+    <node pkg="controller_manager" exec="spawner" args="rover_base_controller" />
+
+    <node pkg="controller_manager" exec="spawner" args="arm_joints_controller" />
+
+    <node pkg="rviz2" exec="rviz2" output="screen" 
+          args="-d $(var rviz_config_path)" />
+</launch>

@@ -1,7 +1,7 @@
 #ifndef ROVER_BASE_ROVERBASE_SYSTEM_HPP_
 #define ROVER_BASE_ROVERBASE_SYSTEM_HPP_
 
-// #include <vector>
+#include <vector>
 
 #include "hardware_interface/handle.hpp"
 #include "hardware_interface/hardware_info.hpp"
@@ -28,8 +28,8 @@ namespace rover_base
     {
         struct Config
         {
-            std::string left_wheel_name = "";
-            std::string right_wheel_name = "";
+            std::vector<std::string> left_wheel_name;
+            std::vector<std::string> right_wheel_name;
             // int enc_counts_per_rev = 0;
             int enc_counts_per_rev_l = 0;
             int enc_counts_per_rev_r = 0;
@@ -79,8 +79,8 @@ namespace rover_base
 
     private:
         Config cfg_;
-        Wheel wheel_l_;
-        Wheel wheel_r_;
+        std::vector<Wheel> wheel_l_;
+        std::vector<Wheel> wheel_r_;
 
         rclcpp::Node::SharedPtr hardware_node_;
 

@@ -1,180 +1,194 @@
-<?xml version="1.0"?>
-<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+<?xml version="1.0" ?>
+<robot name="rover_urdf_wheels" xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-  <!-- Constants for robot dimensions -->
-  <xacro:property name="PI" value="3.1415926535897931"/>
-  <xacro:property name="base_mass" value="0.3" /> <!-- arbitrary value for base mass -->
-  <xacro:property name="base_width" value="0.1" />
-  <xacro:property name="base_length" value="0.1" />
-  <xacro:property name="base_height" value="0.05" />
-  <xacro:property name="wheel_mass" value="0.3" /> <!-- arbitrary value for wheel mass -->
-  <xacro:property name="wheel_len" value="0.10" />
-  <xacro:property name="wheel_radius" value="0.10" />
-  <xacro:property name="caster_wheel_mass" value="0.1" /> <!-- arbitrary value for caster wheel mass -->
-  <xacro:property name="caster_wheel_radius" value="0.015" />
-  <xacro:property name="z_offset" value="-${base_height/2}" /> <!-- Space btw top of beam and the each joint -->
+<xacro:include filename="$(find rover_base_description)/urdf/rover_urdf_wheels.trans" />
+<link name="base_link">
+  <inertial>
+    <origin xyz="0.00738439904217671 -0.09190109455538922 0.39234360337449" rpy="0 0 0"/>
+    <mass value="61.720930628843746"/>
+    <inertia ixx="4.799832" iyy="7.189427" izz="8.8691" ixy="0.012105" iyz="-0.602757" ixz="0.03608"/>
+  </inertial>
+  <visual>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="file://$(find rover_base_description)/meshes/base_link.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="file://$(find rover_base_description)/meshes/base_link.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
 
-  <!-- Base Link -->
-  <link name="base_link">
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry>
-        <box size="${base_width} ${base_length} ${base_height}"/>
-      </geometry>
-    </collision>
+<link name="left_front_wheel_1">
+  <inertial>
+    <origin xyz="0.09201346295520074 6.528691856022562e-07 -4.5004461016184827e-07" rpy="0 0 0"/>
+    <mass value="19.087823413323793"/>
+    <inertia ixx="0.183083" iyy="0.107707" izz="0.107708" ixy="0.0" iyz="-0.0" ixz="-0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.433095 0.598852 -0.186096" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="file://$(find rover_base_description)/meshes/left_front_wheel_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="-0.433095 0.598852 -0.186096" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="file://$(find rover_base_description)/meshes/left_front_wheel_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
 
-    <visual>
-      <origin xyz="0 0 ${base_height/2}" rpy="0 0 0"/>
-      <geometry>
-        <box size="${base_width} ${base_length} ${base_height}"/>
-      </geometry>
-      <material name="orange"/>
-    </visual>
+<link name="left_middle_wheel_1">
+  <inertial>
+    <origin xyz="0.09201346295520813 -4.6810125314822315e-07 6.332213909610029e-07" rpy="0 0 0"/>
+    <mass value="19.087823413323793"/>
+    <inertia ixx="0.183083" iyy="0.107708" izz="0.107707" ixy="0.0" iyz="0.0" ixz="0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.437475 0.171234 -0.173524" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="file://$(find rover_base_description)/meshes/left_middle_wheel_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="-0.437475 0.171234 -0.173524" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="file://$(find rover_base_description)/meshes/left_middle_wheel_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
 
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="${base_mass}"/>
-      <inertia
-        ixx="${base_mass / 12.0 * (base_length*base_length + base_height*base_height)}" ixy="0.0" ixz="0.0"
-        iyy="${base_mass / 12.0 * (base_height*base_height + base_width*base_width)}" iyz="0.0"
-        izz="${base_mass / 12.0 * (base_width*base_width + base_length*base_length)}"/>
-    </inertial>
-  </link>
+<link name="left_back_wheel_1">
+  <inertial>
+    <origin xyz="0.09201346295520191 -3.313596602660951e-08 2.453629426579784e-07" rpy="0 0 0"/>
+    <mass value="19.087823413323793"/>
+    <inertia ixx="0.183083" iyy="0.107708" izz="0.107707" ixy="0.0" iyz="0.0" ixz="0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.433475 -0.244602 -0.142087" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="file://$(find rover_base_description)/meshes/left_back_wheel_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="-0.433475 -0.244602 -0.142087" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="file://$(find rover_base_description)/meshes/left_back_wheel_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
 
-    <joint name="left_wheel_joint" type="continuous">
-      <parent link="base_link"/>
-      <child link="left_wheel"/>
-      <origin xyz="0 -${base_width/2} ${z_offset}" rpy="0 0 0"/>
-      <axis xyz="0 1 0"/>
-      <dynamics damping="0.2"/>
-    </joint>
+<link name="right_back_wheel_1">
+  <inertial>
+    <origin xyz="-0.09201346295513935 4.3400863422582425e-07 -4.1137307060790107e-07" rpy="0 0 0"/>
+    <mass value="19.087823413323793"/>
+    <inertia ixx="0.183083" iyy="0.107708" izz="0.107707" ixy="-0.0" iyz="-0.0" ixz="0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="0.433725 -0.242481 -0.142668" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="file://$(find rover_base_description)/meshes/right_back_wheel_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="0.433725 -0.242481 -0.142668" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="file://$(find rover_base_description)/meshes/right_back_wheel_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
 
-    <!-- left wheel Link -->
-    <link name="left_wheel">
-      <collision>
-        <origin xyz="0 0 0" rpy="${PI/2} 0 0"/>
-        <geometry>
-          <cylinder length="${wheel_len}" radius="${wheel_radius}"/>
-        </geometry>
-      </collision>
+<link name="right_middle_wheel_1">
+  <inertial>
+    <origin xyz="-0.09201346295512652 3.8586665712658785e-07 -4.810204064231716e-07" rpy="0 0 0"/>
+    <mass value="19.087823413323793"/>
+    <inertia ixx="0.183083" iyy="0.107708" izz="0.107707" ixy="-0.0" iyz="-0.0" ixz="0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="0.435725 0.173764 -0.16813" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="file://$(find rover_base_description)/meshes/right_middle_wheel_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="0.435725 0.173764 -0.16813" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="file://$(find rover_base_description)/meshes/right_middle_wheel_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
 
-      <visual>
-        <origin xyz="0 0 0" rpy="${PI/2} 0 0"/>
-        <geometry>
-          <cylinder length="${wheel_len}" radius="${wheel_radius}"/>
-        </geometry>
-        <material name="black"/>
-      </visual>
+<link name="right_front_wheel_1">
+  <inertial>
+    <origin xyz="-0.09201346295516599 -2.2772661723013954e-07 -3.4350903457824877e-07" rpy="0 0 0"/>
+    <mass value="19.087823413323793"/>
+    <inertia ixx="0.183083" iyy="0.107708" izz="0.107707" ixy="-0.0" iyz="-0.0" ixz="0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="0.433725 0.60086 -0.192329" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="file://$(find rover_base_description)/meshes/right_front_wheel_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="0.433725 0.60086 -0.192329" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="file://$(find rover_base_description)/meshes/right_front_wheel_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
 
-      <inertial>
-        <origin xyz="0 0 0" rpy="${PI/2} 0 0"/>
-        <mass value="${wheel_mass}"/>
-        <inertia
-          ixx="${wheel_mass / 12.0 * (3*wheel_radius + wheel_len*wheel_len)}" ixy="0.0" ixz="0.0"
-          iyy="${wheel_mass / 12.0 * wheel_radius*wheel_radius}" iyz="0.0"
-          izz="${wheel_mass / 12.0 * wheel_radius*wheel_radius}"/>
-        </inertial>
-      </link>
+<joint name="left_front_wheel_joint" type="continuous">
+  <origin xyz="0.433095 -0.598852 0.186096" rpy="0 0 0"/>
+  <parent link="base_link"/>
+  <child link="left_front_wheel_1"/>
+  <axis xyz="1.0 0.0 -0.0"/>
+</joint>
 
-    <joint name="right_wheel_joint" type="continuous">
-      <parent link="base_link"/>
-      <child link="right_wheel"/>
-      <origin xyz="0 ${base_width/2} ${z_offset}" rpy="0 0 0"/>
-      <axis xyz="0 1 0"/>
-      <dynamics damping="0.2"/>
-    </joint>
+<joint name="left_middle_wheel_joint" type="continuous">
+  <origin xyz="0.437475 -0.171234 0.173524" rpy="0 0 0"/>
+  <parent link="base_link"/>
+  <child link="left_middle_wheel_1"/>
+  <axis xyz="1.0 0.0 0.0"/>
+</joint>
 
-    <!-- right wheel Link -->
-    <link name="right_wheel">
-      <collision>
-        <origin xyz="0 0 0" rpy="${PI/2} 0 0"/>
-        <geometry>
-          <cylinder length="${wheel_len}" radius="${wheel_radius}"/>
-        </geometry>
-      </collision>
+<joint name="left_back_wheel_joint" type="continuous">
+  <origin xyz="0.433475 0.244602 0.142087" rpy="0 0 0"/>
+  <parent link="base_link"/>
+  <child link="left_back_wheel_1"/>
+  <axis xyz="1.0 0.0 0.0"/>
+</joint>
 
-      <visual>
-        <origin xyz="0 0 0" rpy="${PI/2} 0 0"/>
-        <geometry>
-          <cylinder length="${wheel_len}" radius="${wheel_radius}"/>
-        </geometry>
-        <material name="black"/>
-      </visual>
+<joint name="right_back_wheel_joint" type="continuous">
+  <origin xyz="-0.433725 0.242481 0.142668" rpy="0 0 0"/>
+  <parent link="base_link"/>
+  <child link="right_back_wheel_1"/>
+  <axis xyz="-1.0 -0.0 -0.0"/>
+</joint>
 
-      <inertial>
-        <origin xyz="0 0 0" rpy="${PI/2} 0 0"/>
-        <mass value="${wheel_mass}"/>
-        <inertia
-          ixx="${wheel_mass / 12.0 * (3*wheel_radius + wheel_len*wheel_len)}" ixy="0.0" ixz="0.0"
-          iyy="${wheel_mass / 12.0 * wheel_radius*wheel_radius}" iyz="0.0"
-          izz="${wheel_mass / 12.0 * wheel_radius*wheel_radius}"/>
-        </inertial>
-      </link>
+<joint name="right_middle_wheel_joint" type="continuous">
+  <origin xyz="-0.435725 -0.173764 0.16813" rpy="0 0 0"/>
+  <parent link="base_link"/>
+  <child link="right_middle_wheel_1"/>
+  <axis xyz="-1.0 -0.0 -0.0"/>
+</joint>
 
-    <joint name="caster_frontal_wheel_joint" type="fixed">
-      <parent link="base_link"/>
-      <child link="caster_frontal_wheel"/>
-      <origin xyz="${base_width/2 - caster_wheel_radius} 0 ${z_offset}" rpy="0 0 0"/>
-    </joint>
-
-    <!-- caster frontal wheel Link -->
-    <link name="caster_frontal_wheel">
-      <collision>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <geometry>
-          <sphere radius="${caster_wheel_radius}"/>
-        </geometry>
-      </collision>
-
-      <visual>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <geometry>
-          <sphere radius="${caster_wheel_radius}"/>
-        </geometry>
-        <material name="white"/>
-      </visual>
-
-      <inertial>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <mass value="${caster_wheel_mass}"/>
-        <inertia
-          ixx="${caster_wheel_mass * 0.4 * (caster_wheel_radius * caster_wheel_radius)}" ixy="0.0" ixz="0.0"
-          iyy="${caster_wheel_mass * 0.4 * (caster_wheel_radius * caster_wheel_radius)}" iyz="0.0"
-          izz="${caster_wheel_mass * 0.4 * (caster_wheel_radius * caster_wheel_radius)}"/>
-        </inertial>
-      </link>
-
-    <joint name="caster_rear_wheel_joint" type="fixed">
-      <parent link="base_link"/>
-      <child link="caster_rear_wheel"/>
-      <origin xyz="${-base_width/2 + caster_wheel_radius} 0 ${z_offset}" rpy="0 0 0"/>
-    </joint>
-
-    <!-- caster rear wheel Link -->
-    <link name="caster_rear_wheel">
-      <collision>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <geometry>
-          <sphere radius="${caster_wheel_radius}"/>
-        </geometry>
-      </collision>
-
-      <visual>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <geometry>
-          <sphere radius="${caster_wheel_radius}"/>
-        </geometry>
-        <material name="white"/>
-      </visual>
-
-      <inertial>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <mass value="${caster_wheel_mass}"/>
-        <inertia
-          ixx="${caster_wheel_mass * 0.4 * (caster_wheel_radius * caster_wheel_radius)}" ixy="0.0" ixz="0.0"
-          iyy="${caster_wheel_mass * 0.4 * (caster_wheel_radius * caster_wheel_radius)}" iyz="0.0"
-          izz="${caster_wheel_mass * 0.4 * (caster_wheel_radius * caster_wheel_radius)}"/>
-        </inertial>
-      </link>
+<joint name="right_front_wheel_joint" type="continuous">
+  <origin xyz="-0.433725 -0.60086 0.192329" rpy="0 0 0"/>
+  <parent link="base_link"/>
+  <child link="right_front_wheel_1"/>
+  <axis xyz="-1.0 -0.0 0.0"/>
+</joint>
 
 </robot>

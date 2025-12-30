@@ -27,8 +27,18 @@ namespace rover_base
             return hardware_interface::CallbackReturn::ERROR;
         } 
 
-        cfg_.left_wheel_name = info_.hardware_parameters["left_wheel_name"];
-        cfg_.right_wheel_name = info_.hardware_parameters["right_wheel_name"];
+        info_ = info;
+        size_t n = info_.joints.size();
+
+        cfg_.left_wheel_name.resize(n/2);
+        cfg_.right_wheel_name.resize(n/2);
+
+        for(size_t i=0; i < n/2; ++i){
+            cfg_.left_wheel_name[i] = info_.joints[i].name;
+        }
+        for(size_t i=0; i < n/2; ++i){
+            cfg_.right_wheel_name[i] = info_.joints[i + n/2].name;
+        }
         cfg_.enc_counts_per_rev_l = std::stoi(info_.hardware_parameters["enc_counts_per_rev_l"]);
         cfg_.enc_counts_per_rev_r = std::stoi(info_.hardware_parameters["enc_counts_per_rev_r"]);
         cfg_.wheel_separation = std::stof(info_.hardware_parameters["wheel_separation"]);
@@ -45,8 +55,18 @@ namespace rover_base
             RCLCPP_INFO(rclcpp::get_logger("RoverBaseHardware"), "PID values not supplied, using defaults.");
         }
 
-        wheel_l_.setup(cfg_.left_wheel_name, cfg_.enc_counts_per_rev_l);
-        wheel_r_.setup(cfg_.right_wheel_name, cfg_.enc_counts_per_rev_r);
+        wheel_l_.resize(n/2);
+        wheel_r_.resize(n/2);
+
+        for (size_t i = 0; i < n/2; ++i)
+        {
+            wheel_l_[i].setup(cfg_.left_wheel_name[i], cfg_.enc_counts_per_rev_l);
+        }
+
+        for (size_t i = 0; i < n/2; ++i)
+        {
+            wheel_r_[i].setup(cfg_.right_wheel_name[i], cfg_.enc_counts_per_rev_r);
+        }
 
         for (const hardware_interface::ComponentInfo &joint : info_.joints)
         {
@@ -104,15 +124,23 @@ namespace rover_base
     {
         std::vector<hardware_interface::StateInterface> state_interfaces;
 
-        state_interfaces.emplace_back(hardware_interface::StateInterface(
-            wheel_l_.name, hardware_interface::HW_IF_POSITION, &wheel_l_.pos));
-        state_interfaces.emplace_back(hardware_interface::StateInterface(
-            wheel_l_.name, hardware_interface::HW_IF_VELOCITY, &wheel_l_.vel));
+        size_t n = info_.joints.size();
 
-        state_interfaces.emplace_back(hardware_interface::StateInterface(
-            wheel_r_.name, hardware_interface::HW_IF_POSITION, &wheel_r_.pos));
-        state_interfaces.emplace_back(hardware_interface::StateInterface(
-            wheel_r_.name, hardware_interface::HW_IF_VELOCITY, &wheel_r_.vel));
+        for(size_t i = 0; i < n/2; ++i)
+        {
+            state_interfaces.emplace_back(hardware_interface::StateInterface(
+                wheel_l_[i].name, hardware_interface::HW_IF_POSITION, &wheel_l_[i].pos));
+            state_interfaces.emplace_back(hardware_interface::StateInterface(
+                wheel_l_[i].name, hardware_interface::HW_IF_VELOCITY, &wheel_l_[i].vel));
+        }
+
+        for(size_t i = 0; i < n/2; ++i)
+        {
+            state_interfaces.emplace_back(hardware_interface::StateInterface(
+                wheel_r_[i].name, hardware_interface::HW_IF_POSITION, &wheel_r_[i].pos));
+            state_interfaces.emplace_back(hardware_interface::StateInterface(
+                wheel_r_[i].name, hardware_interface::HW_IF_VELOCITY, &wheel_r_[i].vel));
+        }
 
         return state_interfaces;
     }
@@ -121,15 +149,23 @@ namespace rover_base
     {
         std::vector<hardware_interface::CommandInterface> command_interfaces;
 
-        command_interfaces.emplace_back(hardware_interface::CommandInterface(
-            wheel_l_.name, hardware_interface::HW_IF_VELOCITY, &wheel_l_.cmd));
+        size_t n = info_.joints.size();
 
-        command_interfaces.emplace_back(hardware_interface::CommandInterface(
-            wheel_r_.name, hardware_interface::HW_IF_VELOCITY, &wheel_r_.cmd));
+        for(size_t i = 0; i < n/2; ++i)
+        {
+            command_interfaces.emplace_back(hardware_interface::CommandInterface(
+                wheel_l_[i].name, hardware_interface::HW_IF_VELOCITY, &wheel_l_[i].cmd));
+        }
+
+        for(size_t i = 0; i < n/2; ++i)
+        {
+            command_interfaces.emplace_back(hardware_interface::CommandInterface(
+                wheel_r_[i].name, hardware_interface::HW_IF_VELOCITY, &wheel_r_[i].cmd));
+        }
 
         return command_interfaces;
     }
-
+    
     hardware_interface::CallbackReturn RoverBaseHardware::on_configure(
         const rclcpp_lifecycle::State & /*previous_state*/)
     {
@@ -255,6 +291,8 @@ namespace rover_base
         //     return hardware_interface::return_type::ERROR;
         // }
 
+        size_t n = info_.joints.size();
+
         if (!encoder_readings_)
         {
             // RCLCPP_WARN(rclcpp::get_logger(""), "encoder_readings_ is not initialized yet!");
@@ -267,37 +305,49 @@ namespace rover_base
         }
         else
         {
-            wheel_l_.enc = encoder_readings_->data[0];
-            wheel_r_.enc = encoder_readings_->data[1];
+            for(size_t i = 0; i < n/2; ++i)
+                wheel_l_[i].enc = encoder_readings_->data[0];
+            for(size_t i = 0; i < n/2; ++i)
+                wheel_r_[i].enc = encoder_readings_->data[1];
         }
 
         double delta_seconds = period.seconds();
 
-        double pos_prev = wheel_l_.pos;
-        wheel_l_.pos = wheel_l_.calc_enc_angle();
-        wheel_l_.vel = (wheel_l_.pos - pos_prev) / delta_seconds;
+        for(size_t i = 0; i < n/2; ++i)
+        {
+            double pos_prev = wheel_l_[i].pos;
+            wheel_l_[i].pos = wheel_l_[i].calc_enc_angle();
+            wheel_l_[i].vel = (wheel_l_[i].pos - pos_prev) / delta_seconds;
+        }
 
-        pos_prev = wheel_r_.pos;
-        wheel_r_.pos = wheel_r_.calc_enc_angle();
-        wheel_r_.vel = (wheel_r_.pos - pos_prev) / delta_seconds;
+        for(size_t i = 0; i < n/2; ++i)
+        {
+            double pos_prev = wheel_r_[i].pos;
+            wheel_r_[i].pos = wheel_r_[i].calc_enc_angle();
+            wheel_r_[i].vel = (wheel_r_[i].pos - pos_prev) / delta_seconds;
+        }
 
         return hardware_interface::return_type::OK;
     }
 
     hardware_interface::return_type RoverBaseHardware::write(
-        const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
+        const rclcpp::Time & time, const rclcpp::Duration & period)
     {
+        (void)time;
+        (void)period;
         // if (!check_msg_)    //uncomment
         // {
         //     return hardware_interface::return_type::ERROR;
         // }
 
+        size_t n = info_.joints.size();
+
         auto wheel_vel_ = std::make_unique<geometry_msgs::msg::Twist>();
 
         // double left_wheel_vel = wheel_l_.cmd / wheel_l_.rads_per_count;
         // double right_wheel_vel = wheel_r_.cmd / wheel_r_.rads_per_count;
-        double left_wheel_vel = wheel_l_.cmd;
-        double right_wheel_vel = wheel_r_.cmd;
+        double left_wheel_vel = wheel_l_[0].cmd;
+        double right_wheel_vel = wheel_r_[0].cmd;
 
         // Convert wheel velocities to linear and angular velocity
         wheel_vel_->linear.x = (left_wheel_vel + right_wheel_vel) / 2.0;

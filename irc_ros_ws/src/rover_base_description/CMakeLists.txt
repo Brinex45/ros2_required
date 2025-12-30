@@ -19,7 +19,7 @@ install(TARGETS            #installs the executable
 )
 
 install(
-  DIRECTORY urdf                     #directory which needs to be installed
+  DIRECTORY urdf meshes                  #directory which needs to be installed
   DESTINATION share/${PROJECT_NAME}/      #directory where it will be installed
 )
 
