@@ -323,15 +323,17 @@ private:
 public:
     ArmKinematics() : Node("arm_kinematics_node") {
         publisher_ = this->create_publisher<std_msgs::msg::Float64MultiArray>("/arm_joints_controller/commands", 10);
+
+        auto qos = rclcpp::QoS(5).best_effort();
         
         subscriber_ = this->create_subscription<irc_custom_interfaces::msg::Ps4>(
             "ps4_data_arm",
-            10,
+            qos,//qos,
             std::bind(&ArmKinematics::joint_command_callback, this, _1)
         );
         
         timer_ = this->create_wall_timer(
-            0.02s,
+            0.005s,
             std::bind(&ArmKinematics::publish_arm_angles, this)
         );
 

@@ -2,6 +2,7 @@ import rclpy
 from rclpy.node import Node 
 from rclpy.parameter import Parameter
 from irc_custom_interfaces.msg import Ps4 
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy
 from geometry_msgs.msg import Twist
 
 class DataToTwist(Node): 
@@ -11,11 +12,16 @@ class DataToTwist(Node):
 
         self.ps4_msg = Ps4()
 
+        qos = QoSProfile(
+            depth=5,
+            reliability=QoSReliabilityPolicy.BEST_EFFORT
+        )
+
         self.sub = self.create_subscription(
             Ps4,
-            "ps4_data_",
+            "ps4_data_rover",
             self.listener_callback,
-            10,
+            qos
         )
         self.pub = self.create_publisher(Twist, "/unstamped_vel", 10) 
 

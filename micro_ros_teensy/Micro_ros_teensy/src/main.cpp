@@ -25,8 +25,8 @@ int Left_front_dir_pin=1;
 int Right_middle_motor_pin=10;
 int Right_middle_dir_pin=11;
 
-int Left_middle_motor_pin=2;
-int Left_middle_dir_pin=3;
+int Left_middle_motor_pin=7;
+int Left_middle_dir_pin=6;
 
 int Right_back_motor_pin=22;
 int Right_back_dir_pin=23;

@@ -218,6 +218,16 @@ namespace arm{
     {
         RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Activating ...please wait...");
 
+        // size_t n = info_.joints.size();
+        // auto cmd_msg = std::make_unique<std_msgs::msg::Float32MultiArray>();
+
+        // cmd_msg->data.resize(n);
+            
+        //     cmd_msg->data[1] = 255;
+        //     cmd_msg->data[0] = 100;
+
+        // joint_cmds_pub_->publish(std::move(cmd_msg));
+
         rclcpp::sleep_for(std::chrono::seconds(2));
 
         RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Micro-ROS node is active.");
@@ -321,7 +331,7 @@ namespace arm{
             cmd_msg->data[i] = joint[i].cmd_pwm;
 
             // RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Joint %s pid: %f, %f, %f", joint[i].name.c_str(), joint[i].i_error, period.seconds() * 1000, joint[i].cmd_pwm);
-            // RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Joint %s command: %f, %f, %f", joint[i].name.c_str(), joint[i].pos, joint[i].cmd, joint[i].cmd_pwm);
+            RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Joint %s command: %f, %f, %f", joint[i].name.c_str(), joint[i].pos, joint[i].cmd, joint[i].cmd_pwm);
             // RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Joint %s enc data: %f", joint[i].name.c_str(), joint[i].enc);
             
         }

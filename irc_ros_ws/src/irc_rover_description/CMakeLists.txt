@@ -18,7 +18,7 @@ find_package(rclcpp REQUIRED)
 # )
 
 install(
-  DIRECTORY urdf meshes src
+  DIRECTORY urdf meshes
   DESTINATION share/${PROJECT_NAME}/
 )
 

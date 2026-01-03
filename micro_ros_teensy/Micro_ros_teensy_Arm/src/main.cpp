@@ -31,13 +31,15 @@ int Wrist_pitch_dir_pin=4;
 int Wrist_roll_motor_pin=8;
 int Wrist_roll_dir_pin=9;
 
+// 28_p 29_d
+
 Cytron Turret( Turret_motor_pin, Turret_dir_pin, true);
 
-Cytron Shoulder( Shoulder_motor_pin, Shoulder_dir_pin, true);
+Cytron Shoulder( Shoulder_motor_pin, Shoulder_dir_pin, 1);
 
-Cytron Elbow( Elbow_motor_pin, Elbow_dir_pin, true);
+Cytron Elbow( Elbow_motor_pin, Elbow_dir_pin, 1);
 
-Cytron Wrist_pitch( Wrist_pitch_motor_pin, Wrist_pitch_dir_pin, false);
+Cytron Wrist_pitch( Wrist_pitch_motor_pin, Wrist_pitch_dir_pin, 1);
 
 Cytron Wrist_roll( Wrist_roll_motor_pin, Wrist_roll_dir_pin, true);
 
@@ -57,9 +59,9 @@ Cytron Wrist_roll( Wrist_roll_motor_pin, Wrist_roll_dir_pin, true);
 // int limits[5] = {100, 255, 70, 40, 40};
 
 Encoder Turret_encoder(30,31);
-Encoder Shoulder_encoder(34,35);
-Encoder Elbow_encoder(38,39);
-Encoder Wrist_pitch_encoder(41,40);
+Encoder Shoulder_encoder(35,34);
+Encoder Elbow_encoder(39,38); //36 37
+Encoder Wrist_pitch_encoder(40,41); 
 Encoder Wrist_roll_encoder(26,27);
 
 
@@ -153,7 +155,7 @@ void setup() {
   
   // while (error2 != 0 ) {
     
-  //   Elbow.rotate(50);
+  //   Elbow.rotate(130);
   //   delay(500);
     
   //   float Elbow = (Elbow_encoder.read() * (360.0 / 8192.0));
@@ -236,7 +238,7 @@ void loop() {
   // if (got_cmd) {
     Elbow.rotate(-joint_pwm.data.data[0]);
     Shoulder.rotate(-joint_pwm.data.data[1]);
-    Turret.rotate(-joint_pwm.data.data[2]);
+    // Turret.rotate(-joint_pwm.data.data[2]);
     Wrist_pitch.rotate(joint_pwm.data.data[3]);
     Wrist_roll.rotate(-joint_pwm.data.data[4]);
     // }

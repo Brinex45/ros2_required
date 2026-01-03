@@ -11,7 +11,7 @@
                value="$(command 'xacro $(var urdf_path)')" />
     </node>
  
-    <node pkg="ps4" exec="ps4_data_node" name="ps4_data_node"/>
+    <!-- <node pkg="ps4" exec="ps4_data_node" name="ps4_data_node"/> -->
 
     <node pkg="ps4" exec="ps4_data_to_twist" name="ps4_data_to_twist">
         <param from="$(var joy_params)" />
