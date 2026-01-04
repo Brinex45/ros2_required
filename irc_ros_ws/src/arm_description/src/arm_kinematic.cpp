@@ -79,6 +79,9 @@ u_int8_t R2 = 0;
 int8_t Right_X = 0;
 int8_t Right_Y = 0;
 
+bool L1 = false;
+bool R1 = false;
+
 double k = 0.0001;
 
 
@@ -92,6 +95,7 @@ double y_target;
 double z_target;
 double y_rot;
 double z_rot = 0;
+double gripper = 0;
 
 double prev_x_target;
 double prev_y_target;
@@ -164,6 +168,9 @@ private:
         Right_X = msg->ps4_data_analog[3];
         Right_Y = msg->ps4_data_analog[4];
 
+        L1 = msg->ps4_data_buttons[4];
+        R1 = msg->ps4_data_buttons[5];
+
         if (L2 >= 0) L2 = L2;
         else L2 += 255;
         if (R2 >= 0) R2 = R2;
@@ -185,18 +192,24 @@ private:
         
         // RCLCPP_INFO(this->get_logger(), "Left_X: %f, Left_Y: %f, Right_Y: %f, L2: %f, R2: %f", Left_X_m, Left_Y_m, Right_Y_m, L2_m, R2_m);
 
-        if (abs(Left_X_m) >= 0.2) {
+        if (abs(Left_X_m) >= 0.3) {
             x_target += (Left_X_m * unit_trans);
         }
-        if (abs(Left_Y_m) >= 0.2) {
-            y_target += (Left_Y_m * unit_trans);
-        }
+        if (abs(Left_Y_m) >= 0.5) {
+            y_target = (Left_Y_m * 50);
+        } else y_target = 0;
         if (abs(Right_Y_m) >= 0.2) {
             z_target += (Right_Y_m * unit_trans);
         }
-        if (L2_m >= 0.2 || R2_m >= 0.2) {
-            y_rot = ((L2_m - R2_m) * unit_rot);
+        if (abs(Right_X_m) >= 0.2) {
+            y_rot += (Right_X_m * unit_rot);
         } else y_rot = 0;
+        if (L2_m >= 0.2 || R2_m >= 0.2) {
+            z_rot = ((L2_m - R2_m) * 30);
+        } else z_rot = 0;
+        if (L1 || R1){
+            gripper = (L1 - R1) * 40;
+        } else gripper = 0;
 
         // RCLCPP_INFO(this->get_logger(), "x_target: %.2f, y_target: %.2f, z_target: %.2f, y_rot: %.2f", x_target, y_target, z_target, y_rot);
 
@@ -209,10 +222,10 @@ private:
         Eigen::Matrix4d Y_new_rot = rot_y(y_rad);
         Eigen::Matrix4d Z_new_rot = rot_z(z_rad);
         
-        Eigen::Matrix4d Trans = translate(x_target - prev_x_target, y_target - prev_y_target, z_target - prev_z_target);
+        Eigen::Matrix4d Trans = translate(x_target - prev_x_target, 0, z_target - prev_z_target);
 
         prev_x_target = x_target;
-        prev_y_target = y_target;
+        // prev_y_target = y_target;
         prev_z_target = z_target;
 
         Transform_matrix = (Transform_matrix * Y_new_rot * Z_new_rot) + Trans;
@@ -257,8 +270,8 @@ private:
         // );
 
 
-        theta_1 = atan2(py, px);
-        theta_5 = atan2(sz, -nz);
+        theta_1 = 0;
+        // theta_5 = atan2(sz, -nz);
 
         theta_234 = atan2(-((ax * cos(theta_1)) + (ay * sin(theta_1))), -az);
 
@@ -293,10 +306,11 @@ private:
         kinematic();
 
         
-        theta_1 = theta_1;
+        theta_1 = 1 * y_target;
         theta_2 = (theta_2 + M_PI/2) - 0.289729;
         theta_3 = theta_3 - M_PI/2 - 0.350289;
         theta_4 = (theta_4 - M_PI/2) + 0.640018;
+        theta_5 = 1 * z_rot;
         // RCLCPP_INFO(this->get_logger(), "Theta1: %.2f, Theta2: %.2f, Theta3: %.2f, Theta4: %.2f, Theta234: %.2f", (theta_1), (theta_2), (theta_3), (theta_4), (theta_234));
 
         // trajectory_msgs::msg::JointTrajectory traj;
@@ -314,7 +328,7 @@ private:
         // publisher_->publish(traj);
 
         std_msgs::msg::Float64MultiArray target_angles_;
-        target_angles_.data = {theta_3, theta_2, theta_1, theta_4, 0.0};
+        target_angles_.data = {theta_3, theta_2, theta_1, theta_4, theta_5};
         publisher_->publish(target_angles_);
 
         

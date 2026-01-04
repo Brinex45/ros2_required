@@ -15,6 +15,15 @@ namespace arm{
                 encoder_readings_ = msg;
                 micro_ros_active_ = true;
             });
+        
+        read_kill_switch_pub_ = hardware_node_->create_subscription<std_msgs::msg::Byte>(
+            "/kill_switch_state", 10,
+            [this](const std_msgs::msg::Byte::SharedPtr msg)
+            {
+                kill_switch_state_ = msg;
+            });
+
+        encoder_reset_pub_ = hardware_node_->create_publisher<std_msgs::msg::Bool>("/encoder_reset", 10);
 
         joint_cmds_pub_ = hardware_node_->create_publisher<std_msgs::msg::Float32MultiArray>("/joints_command", 10);
 
@@ -218,15 +227,8 @@ namespace arm{
     {
         RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Activating ...please wait...");
 
-        // size_t n = info_.joints.size();
-        // auto cmd_msg = std::make_unique<std_msgs::msg::Float32MultiArray>();
-
-        // cmd_msg->data.resize(n);
-            
-        //     cmd_msg->data[1] = 255;
-        //     cmd_msg->data[0] = 100;
-
-        // joint_cmds_pub_->publish(std::move(cmd_msg));
+        homing_done_ = false;
+        arm_mode_ = ArmMode::HOMING;
 
         rclcpp::sleep_for(std::chrono::seconds(2));
 
@@ -271,7 +273,10 @@ namespace arm{
                 // RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Joint %s enc data: %f", joint[i].name.c_str(), joint[i].enc);
             }
         }
-        
+
+        if (!kill_switch_state_ || kill_switch_state_->data == 0) {
+            // return hardware_interface::return_type::OK;
+        }
 
         // if (encoder_readings_->data.size() < n) {
         //     RCLCPP_WARN(rclcpp::get_logger("ArmHardware"),
@@ -302,38 +307,45 @@ namespace arm{
         auto cmd_msg = std::make_unique<std_msgs::msg::Float32MultiArray>();
         cmd_msg->data.resize(n);
 
-        for (size_t i = 0; i < n; ++i) {
-
-            // cmd_msg->data[i] = static_cast<float>(joint[i].cmd);
+        if (arm_mode_ == ArmMode::HOMING) {
             
-            // float pos = static_cast<float>(joint[i].cmd);
-            // float speed = (joint[i].pos - pos) * (180.0f / 3.14159265f); // Convert rad to deg
+            joint[0].cmd = 130.0;
+            joint[1].cmd = 255.0;
+            joint[2].cmd = 0.0;
+            joint[3].cmd = 20.0;
+            joint[4].cmd = 0.0;
+            // joint[5].cmd = 0.0;
 
-            // switch (i){
-            // case 0:
-            //     cmd_msg->data[i] = constrain(-speed * 35, -100.0f, 100.0f);
-            //     break;
-            // case 1:
-            //     cmd_msg->data[i] = constrain(-speed * 200, -255.0f, 255.0f);
-            //     break;
-            // case 2:
-            //     cmd_msg->data[i] = constrain(-speed * 30, -70.0f, 70.0f);
-            //     break;  
-            // case 3:
-            //     cmd_msg->data[i] = constrain(-speed * 12, -30.0f, 30.0f);
-            //     break;
-            // case 4:
-            //     cmd_msg->data[i] = constrain(-speed, -70.0f, 70.0f);
-            //     break;
-            // }
+            for (size_t i = 0; i < n; ++i) {
+                cmd_msg->data[i] = joint[i].cmd;
+            }
 
-            joint[i].cmd_pwm = joint[i].calc_pwm(period.seconds() * 1000);
-            cmd_msg->data[i] = joint[i].cmd_pwm;
-
-            // RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Joint %s pid: %f, %f, %f", joint[i].name.c_str(), joint[i].i_error, period.seconds() * 1000, joint[i].cmd_pwm);
-            RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Joint %s command: %f, %f, %f", joint[i].name.c_str(), joint[i].pos, joint[i].cmd, joint[i].cmd_pwm);
-            // RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Joint %s enc data: %f", joint[i].name.c_str(), joint[i].enc);
+            RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Homing complete. Switching to CLOSED_LOOP mode.");
             
+            if (kill_switch_state_ && kill_switch_state_->data == 7) {
+                auto encoder_reset_msg_ = std::make_unique<std_msgs::msg::Bool>();
+                encoder_reset_msg_->data = true;
+                if (encoder_reset_msg_) {
+                    encoder_reset_pub_->publish(std::move(encoder_reset_msg_));
+                }
+                arm_mode_ = ArmMode::CLOSED_LOOP;
+            }
+        }
+        else if (arm_mode_ == ArmMode::CLOSED_LOOP) {
+            for (size_t i = 0; i < n; ++i) {
+
+                joint[i].cmd_pwm = joint[i].calc_pwm(period.seconds() * 1000);
+                cmd_msg->data[i] = joint[i].cmd_pwm;
+
+                if (i == 2 || i == 4) {
+                    cmd_msg->data[i] = joint[i].cmd;
+                }
+
+                // RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Joint %s pid: %f, %f, %f", joint[i].name.c_str(), joint[i].i_error, period.seconds() * 1000, joint[i].cmd_pwm);
+                RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Joint %s command: %f, %f, %f", joint[i].name.c_str(), joint[i].pos, joint[i].cmd, joint[i].cmd_pwm);
+                // RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Joint %s enc data: %f", joint[i].name.c_str(), joint[i].enc);
+                
+            }
         }
 
         joint_cmds_pub_->publish(std::move(cmd_msg));

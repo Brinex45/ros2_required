@@ -19,6 +19,7 @@
 #include "geometry_msgs/msg/twist.hpp"
 #include "std_msgs/msg/int64_multi_array.hpp"
 #include "std_msgs/msg/float32_multi_array.hpp"
+#include "std_msgs/msg/byte.hpp"
 
 #include "visibility_control.h"
 #include "joint.hpp"
@@ -38,6 +39,15 @@ namespace arm
             std::vector<double> max_pwm;
             std::vector<double> min_pwm;
         };
+
+        enum class ArmMode {
+            IDLE,
+            HOMING,
+            CLOSED_LOOP
+        };
+
+        bool homing_done_ = false;
+        ArmMode arm_mode_ = ArmMode::IDLE;
 
     public:
         RCLCPP_SHARED_PTR_DEFINITIONS(ArmHardware)
@@ -83,11 +93,15 @@ namespace arm
         rclcpp::Node::SharedPtr hardware_node_;
 
         rclcpp::Subscription<std_msgs::msg::Int64MultiArray>::SharedPtr encoder_readings_sub_; // convert it to a custom msg for encoder data
-        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr check_sub_;
+        rclcpp::Subscription<std_msgs::msg::Byte>::SharedPtr read_kill_switch_pub_;
+        rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr encoder_reset_pub_;
         rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr joint_cmds_pub_;
-        // rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr pid_values_pub_;
+
+        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr check_sub_;
 
         std_msgs::msg::Int64MultiArray::SharedPtr encoder_readings_;
+        std_msgs::msg::Byte::SharedPtr kill_switch_state_{nullptr};
+        std_msgs::msg::Bool::SharedPtr encoder_reset_msg_;
         std::thread spin_thread_;                   // Thread for spinning the ROS node
         std::atomic<bool> stop_spin_thread_{false}; // Flag to stop spinning safely
         bool micro_ros_active_ = false;
