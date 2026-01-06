@@ -328,7 +328,7 @@ private:
         // publisher_->publish(traj);
 
         std_msgs::msg::Float64MultiArray target_angles_;
-        target_angles_.data = {theta_3, theta_2, theta_1, theta_4, theta_5};
+        target_angles_.data = {theta_3, theta_2, theta_1, theta_4, theta_5, gripper};
         publisher_->publish(target_angles_);
 
         
