@@ -314,7 +314,7 @@ namespace arm{
             joint[2].cmd = 0.0;
             joint[3].cmd = 20.0;
             joint[4].cmd = 0.0;
-            // joint[5].cmd = 0.0;
+            joint[5].cmd = 0.0;
 
             for (size_t i = 0; i < n; ++i) {
                 cmd_msg->data[i] = joint[i].cmd;

@@ -70,6 +70,6 @@ rover_base_controller:
 
 arm_joints_controller:
   ros__parameters:
-    joints: ["elbow_joint", "shoulder_joint", "turret_joint", "wrist_pitch_joint", "wrist_roll_joint"]
+    joints: ["elbow_joint", "shoulder_joint", "turret_joint", "wrist_pitch_joint", "wrist_roll_joint", "gripper_joint"]
 
     interface_name: "velocity"

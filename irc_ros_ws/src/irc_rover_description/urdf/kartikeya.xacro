@@ -279,6 +279,27 @@
   </collision>
 </link>
 
+<link name="gripper_motor">
+  <inertial>
+    <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+    <mass value="1.0"/>
+    <inertia ixx="3.5625e-05" iyy="3.5625e-05" izz="1.125e-05" ixy="0.0" iyz="0.0" ixz="0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="0.0 0.0 0.0" rpy="0 1.57 0"/>
+    <geometry>
+      <cylinder radius="0.015" length="0.06"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="0.0 0.0 0.0" rpy="0 3.14 0"/>
+    <geometry>
+      <cylinder radius="0.015" length="0.06"/>
+    </geometry>
+  </collision>
+</link>
+
 <joint name="left_front_wheel_joint" type="continuous">
   <origin xyz="0.433095 -0.598852 0.186096" rpy="0 0 0"/>
   <parent link="base_link"/>
@@ -321,7 +342,7 @@
   <axis xyz="-1.0 -0.0 0.0"/>
 </joint>
 
-<joint name="base_arm_base_jointse_" type="fixed">
+<joint name="base_arm_base_joint" type="fixed">
   <origin xyz="0.000475 -0.205 0.41905" rpy="0 0 0"/>
   <parent link="base_link"/>
   <child link="arm_base_link_1"/>
@@ -360,6 +381,13 @@
   <parent link="wrist_1_1"/>
   <child link="wrist_2_1"/>
   <axis xyz="-0.000773 -0.999957 -0.0092"/>
+</joint>
+
+<joint name="gripper_joint" type="continuous">
+  <origin xyz="0.0 -0.032998 -0.000304" rpy="0 0 0"/>
+  <parent link="wrist_2_1"/>
+  <child link="gripper_motor"/>
+  <axis xyz="1.0 0.0 0.0"/>
 </joint>
 
 </robot>
