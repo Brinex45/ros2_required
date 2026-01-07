@@ -46,8 +46,8 @@ Cytron Wrist_pitch( Wrist_pitch_motor_pin, Wrist_pitch_dir_pin, 1);
 Cytron Wrist_roll( Wrist_roll_motor_pin, Wrist_roll_dir_pin, true);
 
 Encoder Turret_encoder(30,31);
-Encoder Shoulder_encoder(35,34);
-Encoder Elbow_encoder(39,38); //36 37
+Encoder Shoulder_encoder(37,36); // 35 34
+Encoder Elbow_encoder(37,36); //36 37  39 38
 Encoder Wrist_pitch_encoder(40,41); 
 Encoder Wrist_roll_encoder(26,27);
 

@@ -55,7 +55,7 @@ rcl_allocator_t allocator;
 rcl_node_t node;
 rcl_timer_t timer;
 
-float_t linear_x = 0.0;
+float_t linear_y = 0.0;
 float_t angular_z = 0.0;
 
 #define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){error_loop();}}
@@ -78,7 +78,7 @@ void subscription_callback(const void * msgin)
 
   twist_msg = *msg; 
   
-  linear_x = twist_msg.linear.x;
+  linear_y = twist_msg.linear.y;
   angular_z = twist_msg.angular.z;
 
 }
@@ -86,8 +86,8 @@ void subscription_callback(const void * msgin)
 void timer_callback(rcl_timer_t * timer, int64_t last_call_time) {
   RCLC_UNUSED(last_call_time);
   if (timer != NULL) {
-    float_t right_speed = linear_x + angular_z;
-    float_t left_speed = linear_x - angular_z;
+    float_t right_speed = linear_y + angular_z;
+    float_t left_speed = linear_y - angular_z;
     
     R_F.rotate(right_speed);
     R_M.rotate(right_speed);

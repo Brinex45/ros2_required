@@ -39,7 +39,7 @@ class DataToTwist(Node):
     def publish_ps_data(self): 
         twist = Twist()
         
-        twist.linear.x = (self.ps4_msg.ps4_data_analog[1] / 127.0) * self.multiplier_
+        twist.linear.y = (self.ps4_msg.ps4_data_analog[1] / 127.0) * self.multiplier_
         twist.angular.z = ( - self.ps4_msg.ps4_data_analog[0] / 127.0) * self.multiplier_
 
         self.pub.publish(twist)
