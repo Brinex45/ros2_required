@@ -33,8 +33,8 @@ int Wrist_pitch_dir_pin=4;
 int Wrist_roll_motor_pin=8;
 int Wrist_roll_dir_pin=9;
 
-int Gripper_motor_pin=28;
-int Gripper_dir_pin=29;
+int Gripper_motor_pin=10;
+int Gripper_dir_pin=11;
 
 // 28_p 29_d
 
