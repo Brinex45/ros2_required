@@ -34,14 +34,14 @@ int Right_back_dir_pin=23;
 int Left_back_motor_pin=5;
 int Left_back_dir_pin=4;
 
-Cytron R_F( Right_front_motor_pin, Right_front_dir_pin, true);
+Cytron R_F( Right_front_motor_pin, Right_front_dir_pin, 0);
 Cytron L_F( Left_front_motor_pin, Left_front_dir_pin, true);
 
-Cytron R_M( Right_middle_motor_pin, Right_middle_dir_pin, true);
+Cytron R_M( Right_middle_motor_pin, Right_middle_dir_pin, 0);
 Cytron L_M( Left_middle_motor_pin, Left_middle_dir_pin, false);
 
-Cytron R_B( Right_back_motor_pin, Right_back_dir_pin, true);
-Cytron L_B( Left_back_motor_pin, Left_back_dir_pin, true);
+Cytron R_B( Right_back_motor_pin, Right_back_dir_pin, 0);
+Cytron L_B( Left_back_motor_pin, Left_back_dir_pin, 0);
 
 rcl_publisher_t publisher;
 rcl_subscription_t subscription;
@@ -78,7 +78,7 @@ void subscription_callback(const void * msgin)
 
   twist_msg = *msg; 
   
-  linear_x = twist_msg.linear.y;
+  linear_x = twist_msg.linear.x;
   angular_z = twist_msg.angular.z;
 
 }

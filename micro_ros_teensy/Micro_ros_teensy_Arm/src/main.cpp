@@ -42,7 +42,7 @@ Cytron Turret( Turret_motor_pin, Turret_dir_pin, true);
 
 Cytron Shoulder( Shoulder_motor_pin, Shoulder_dir_pin, 1);
 
-Cytron Elbow( Elbow_motor_pin, Elbow_dir_pin, 1);
+Cytron Elbow( Elbow_motor_pin, Elbow_dir_pin, 0);
 
 Cytron Wrist_pitch( Wrist_pitch_motor_pin, Wrist_pitch_dir_pin, 1);
 
@@ -51,9 +51,9 @@ Cytron Wrist_roll( Wrist_roll_motor_pin, Wrist_roll_dir_pin, true);
 Cytron Gripper(Gripper_motor_pin, Gripper_dir_pin, 1);
 
 Encoder Turret_encoder(30,31);
-Encoder Shoulder_encoder(37,36); // 35 34
-Encoder Elbow_encoder(37,36); //36 37  39 38
-Encoder Wrist_pitch_encoder(40,41); 
+Encoder Shoulder_encoder(40,41); // 35 34
+Encoder Elbow_encoder(36,37); //36 37  39 38
+Encoder Wrist_pitch_encoder(32,33); 
 Encoder Wrist_roll_encoder(26,27);
 
 
@@ -74,7 +74,7 @@ rcl_node_t node;
 rcl_timer_t timer;
 
 int64_t encoder_buffer[5];
-float joint_pwm_buffer[5];
+float joint_pwm_buffer[6];
 
 int shoulder_kill_switch = 7;
 int elbow_kill_switch = 8;
@@ -160,8 +160,8 @@ void setup() {
   encoder_data.data.capacity = 5;
 
   joint_pwm.data.data = joint_pwm_buffer;
-  joint_pwm.data.size = 5;
-  joint_pwm.data.capacity = 5;
+  joint_pwm.data.size = 6;
+  joint_pwm.data.capacity = 6;
 
 
   allocator = rcl_get_default_allocator();
@@ -233,7 +233,7 @@ void loop() {
     Elbow.rotate(-joint_pwm.data.data[0]);
     Shoulder.rotate(-joint_pwm.data.data[1]);
     Turret.rotate(-joint_pwm.data.data[2]);
-    Wrist_pitch.rotate(joint_pwm.data.data[3]);
+    Wrist_pitch.rotate(-joint_pwm.data.data[3]);
     Wrist_roll.rotate(-joint_pwm.data.data[4]);
     Gripper.rotate(-joint_pwm.data.data[5]);
     // }

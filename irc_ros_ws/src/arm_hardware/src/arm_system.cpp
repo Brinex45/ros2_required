@@ -309,8 +309,8 @@ namespace arm{
 
         if (arm_mode_ == ArmMode::HOMING) {
             
-            joint[0].cmd = -100.0;
-            joint[1].cmd = -250.0;
+            joint[0].cmd = -250.0;
+            joint[1].cmd = 120.0;
             joint[2].cmd = 0.0;
             joint[3].cmd = 0.0;
             joint[4].cmd = 0.0;
