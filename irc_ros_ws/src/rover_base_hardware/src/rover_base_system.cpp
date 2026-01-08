@@ -350,7 +350,7 @@ namespace rover_base
         double right_wheel_vel = wheel_r_[0].cmd;
 
         // Convert wheel velocities to linear and angular velocity
-        wheel_vel_->linear.y = (left_wheel_vel + right_wheel_vel) / 2.0;
+        wheel_vel_->linear.x = (left_wheel_vel + right_wheel_vel) / 2.0;
         wheel_vel_->angular.z = (right_wheel_vel - left_wheel_vel) / cfg_.wheel_separation;
 
         wheel_vel_pub_->publish(std::move(wheel_vel_));

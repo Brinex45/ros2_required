@@ -33,6 +33,9 @@ int Wrist_pitch_dir_pin=4;
 int Wrist_roll_motor_pin=8;
 int Wrist_roll_dir_pin=9;
 
+int Gripper_motor_pin=28;
+int Gripper_dir_pin=29;
+
 // 28_p 29_d
 
 Cytron Turret( Turret_motor_pin, Turret_dir_pin, true);
@@ -44,6 +47,8 @@ Cytron Elbow( Elbow_motor_pin, Elbow_dir_pin, 1);
 Cytron Wrist_pitch( Wrist_pitch_motor_pin, Wrist_pitch_dir_pin, 1);
 
 Cytron Wrist_roll( Wrist_roll_motor_pin, Wrist_roll_dir_pin, true);
+
+Cytron Gripper(Gripper_motor_pin, Gripper_dir_pin, 1);
 
 Encoder Turret_encoder(30,31);
 Encoder Shoulder_encoder(37,36); // 35 34
@@ -92,7 +97,7 @@ void subscription_callback(const void * msgin)
 
   const std_msgs__msg__Float32MultiArray * msg = (const std_msgs__msg__Float32MultiArray *) msgin;
 
-  for (size_t i = 0; i < 5; i++) {
+  for (size_t i = 0; i < 6; i++) {
     joint_pwm.data.data[i] = msg->data.data[i];
   }
 
@@ -230,6 +235,7 @@ void loop() {
     Turret.rotate(-joint_pwm.data.data[2]);
     Wrist_pitch.rotate(joint_pwm.data.data[3]);
     Wrist_roll.rotate(-joint_pwm.data.data[4]);
+    Gripper.rotate(-joint_pwm.data.data[5]);
     // }
     
   RCSOFTCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(10)));
