@@ -42,7 +42,7 @@ Cytron Turret( Turret_motor_pin, Turret_dir_pin, true);
 
 Cytron Shoulder( Shoulder_motor_pin, Shoulder_dir_pin, 1);
 
-Cytron Elbow( Elbow_motor_pin, Elbow_dir_pin, 0);
+Cytron Elbow( Elbow_motor_pin, Elbow_dir_pin, 1);
 
 Cytron Wrist_pitch( Wrist_pitch_motor_pin, Wrist_pitch_dir_pin, 1);
 
@@ -52,7 +52,7 @@ Cytron Gripper(Gripper_motor_pin, Gripper_dir_pin, 1);
 
 Encoder Turret_encoder(30,31);
 Encoder Shoulder_encoder(40,41); // 35 34
-Encoder Elbow_encoder(36,37); //36 37  39 38
+Encoder Elbow_encoder(37,36); //36 37  39 38
 Encoder Wrist_pitch_encoder(32,33); 
 Encoder Wrist_roll_encoder(26,27);
 

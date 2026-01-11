@@ -3,70 +3,40 @@
 
     <ros2_control name="Arm" type="system">
         <hardware>
-            <!-- <plugin>mock_components/GenericSystem</plugin>
-            <param name="calculate_dynamics">false</param> -->
-            <plugin>arm/ArmHardware</plugin>
+            <plugin>mock_components/GenericSystem</plugin>
+            <param name="calculate_dynamics">false</param>
+            <!-- <plugin>arm/ArmHardware</plugin> -->
         </hardware>
 
         <joint name="elbow_joint">
-            <!-- <command_interface name="position" /> -->
-            <command_interface name="velocity" />
+            <command_interface name="position" />
             <state_interface name="position" />
-            <state_interface name="velocity" />
-            <param name="encoder_counts_per_rev">8192</param>
-            <param name="pid_p">100</param>
-            <param name="pid_d">0</param>
-            <param name="pid_i">0.000</param>
-            <param name="max_pwm">130</param>
-            <param name="min_pwm">-130</param>
+            <!-- <state_interface name="velocity" /> -->
         </joint>
         <joint name="shoulder_joint">
-            <!-- <command_interface name="position" /> -->
-            <command_interface name="velocity" />
+            <command_interface name="position" />
             <state_interface name="position" />
-            <state_interface name="velocity" />
-            <param name="encoder_counts_per_rev">8192</param>
-            <param name="pid_p">200</param>
-            <param name="pid_d">0</param>
-            <param name="pid_i">0.000</param>
-            <param name="max_pwm">254</param>
-            <param name="min_pwm">-254</param>
+            <!-- <state_interface name="velocity" /> -->
         </joint>
         <joint name="turret_joint">
-            <!-- <command_interface name="position" /> -->
-            <command_interface name="velocity" />
+            <command_interface name="position" />
             <state_interface name="position" />
-            <state_interface name="velocity" />
-            <param name="encoder_counts_per_rev">460000</param>
-            <param name="pid_p">30</param>
-            <param name="pid_d">0</param>
-            <param name="pid_i">0.000</param>
-            <param name="max_pwm">70.0</param>
-            <param name="min_pwm">-70.0</param>
+            <!-- <state_interface name="velocity" /> -->
         </joint>
         <joint name="wrist_pitch">
-            <!-- <command_interface name="position" /> -->
-            <command_interface name="velocity" />
+            <command_interface name="position" />
             <state_interface name="position" />
-            <state_interface name="velocity" />
-            <param name="encoder_counts_per_rev">8192</param>
-            <param name="pid_p">40</param>
-            <param name="pid_d">0</param>
-            <param name="pid_i">0.000</param>
-            <param name="max_pwm">40.0</param>
-            <param name="min_pwm">-40.0</param>
+            <!-- <state_interface name="velocity" /> -->
         </joint>
         <joint name="wrist_roll">
-            <!-- <command_interface name="position" /> -->
-            <command_interface name="velocity" />
+            <command_interface name="position" />
             <state_interface name="position" />
-            <state_interface name="velocity" />
-            <param name="encoder_counts_per_rev">8192</param>
-            <param name="pid_p">1.0</param>
-            <param name="pid_d">5.0</param>
-            <param name="pid_i">0.000</param>
-            <param name="max_pwm">40.0</param>
-            <param name="min_pwm">-40.0</param>
+            <!-- <state_interface name="velocity" /> -->
+        </joint>
+        <joint name="gripper_motor_joint">
+            <command_interface name="position" />
+            <state_interface name="position" />
+            <!-- <state_interface name="velocity" /> -->
         </joint>
     </ros2_control>
  

@@ -7,9 +7,6 @@
 
 #include "std_msgs/msg/header.hpp"
 #include "std_msgs/msg/float64_multi_array.hpp"
-#include "joint_trajectory_controller/trajectory.hpp"
-#include "trajectory_msgs/msg/joint_trajectory.hpp"
-#include "trajectory_msgs/msg/joint_trajectory_point.hpp"
 #include "irc_custom_interfaces/msg/ps4.hpp"
 
 using namespace std::chrono_literals;
@@ -52,9 +49,9 @@ Eigen::Matrix4d translate(double x, double y, double z) {
 
 Eigen::Matrix4d home_matrix = [] {
     Eigen::Matrix4d H;
-    H << 0, 0, 1, 530.5,
+    H << 0, 0, 1, 630,
          0, 1, 0, 0,
-        -1, 0, 0, 487.5,
+        -1, 0, 0, 450,
          0, 0, 0, 1;
     return H;
 }();
@@ -62,15 +59,15 @@ Eigen::Matrix4d home_matrix = [] {
 Eigen::Matrix4d Transform_matrix = home_matrix;
 
 #define unit_trans 1
-#define unit_rot 0.5
+#define unit_rot 0.001
 
 // #define unit_trans 0.1
 // #define unit_rot 0.1
 
-#define d1 37.5
+#define d1 15
 #define d5 80.5
 #define a2 450
-#define a3 450
+#define a3 480
 
 int8_t Left_X = 0;
 int8_t Left_Y = 0;
@@ -112,6 +109,7 @@ float length3 = 5;
 
 float theta_1, theta_2, theta_3, theta_4, theta_5;
 float theta_234;
+float turret;
 
 float angle1;
 float angle2;
@@ -119,6 +117,8 @@ float angle3;
 float angle4;
 float pos;   // z
 float pos2;
+
+int y;
 
 float x;
 float y;
@@ -196,7 +196,7 @@ private:
             x_target += (Left_X_m * unit_trans);
         }
         if (abs(Left_Y_m) >= 0.5) {
-            y_target = (Left_Y_m * 50);
+            y = (Left_Y_m * 50);
         } else y_target = 0;
         if (abs(Right_Y_m) >= 0.2) {
             z_target += (Right_Y_m * unit_trans);
@@ -211,7 +211,7 @@ private:
             gripper = (L1 - R1) * 40;
         } else gripper = 0;
 
-        // RCLCPP_INFO(this->get_logger(), "x_target: %.2f, y_target: %.2f, z_target: %.2f, y_rot: %.2f", x_target, y_target, z_target, y_rot);
+        RCLCPP_INFO(this->get_logger(), "x_target: %.2f, y_target: %.2f, z_target: %.2f, y_rot: %.2f", x_target, y_target, z_target, y_rot);
 
     }
     
@@ -222,10 +222,10 @@ private:
         Eigen::Matrix4d Y_new_rot = rot_y(y_rad);
         Eigen::Matrix4d Z_new_rot = rot_z(z_rad);
         
-        Eigen::Matrix4d Trans = translate(x_target - prev_x_target, 0, z_target - prev_z_target);
+        Eigen::Matrix4d Trans = translate(x_target - prev_x_target, y_target - prev_y_target, z_target - prev_z_target);
 
         prev_x_target = x_target;
-        // prev_y_target = y_target;
+        prev_y_target = y_target;
         prev_z_target = z_target;
 
         Transform_matrix = (Transform_matrix * Y_new_rot * Z_new_rot) + Trans;
@@ -270,7 +270,7 @@ private:
         // );
 
 
-        theta_1 = 0;
+        theta_1 = atan2(py, px);
         // theta_5 = atan2(sz, -nz);
 
         theta_234 = atan2(-((ax * cos(theta_1)) + (ay * sin(theta_1))), -az);
@@ -294,41 +294,27 @@ private:
 
     }
 
-    bool inside_ws() {
-        if (isnan(angle1) || isnan(angle2) || isnan(angle3) || isnan(angle4) || angle1 > 80 || angle2 < 73 || angle2 > 118) 
-            return false;
-        else
-            return true;
-    }
+    // bool inside_ws() {
+    //     if (theta_2 > 0 || theta_2 < -1.57 || theta_3 > 1.57 || theta_3 < 0 || theta_4 > 1.57 || theta_4 < -1.57) 
+    //         return false;
+    //     else
+    //         return true;
+    // }
 
     void publish_arm_angles() {
 
         kinematic();
 
         
-        theta_1 = 1 * y_target;
+        turret = 1 * y;
         theta_2 = (theta_2 + M_PI/2);
-        theta_3 = (theta_3 - M_PI/2);
+        theta_3 = -((theta_3 - M_PI/2) + 0.122111);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           ;
         theta_4 = (theta_4 - M_PI/2);
         theta_5 = 1 * z_rot;
         // RCLCPP_INFO(this->get_logger(), "Theta1: %.2f, Theta2: %.2f, Theta3: %.2f, Theta4: %.2f, Theta234: %.2f", (theta_1), (theta_2), (theta_3), (theta_4), (theta_234));
 
-        // trajectory_msgs::msg::JointTrajectory traj;
-        // traj.joint_names = {
-        // "elbow_joint", "shoulder_joint", "turret_joint", "wrist_pitch", "wrist_roll"
-        // };
-
-        // trajectory_msgs::msg::JointTrajectoryPoint point;
-        // point.positions = {theta_3, theta_2, theta_1, theta_4, 0.0};
-        // point.time_from_start = rclcpp::Duration::from_seconds(0.5);
-
-        // traj.points.push_back(point);
-        // traj.header.stamp = this->now();
-
-        // publisher_->publish(traj);
-
         std_msgs::msg::Float64MultiArray target_angles_;
-        target_angles_.data = {theta_3, theta_2, theta_1, theta_4, theta_5, gripper};
+        target_angles_.data = {theta_3, theta_2, turret, theta_4, theta_5, gripper};
         publisher_->publish(target_angles_);
 
         
@@ -347,7 +333,7 @@ public:
         );
         
         timer_ = this->create_wall_timer(
-            0.005s,
+            0.001s,
             std::bind(&ArmKinematics::publish_arm_angles, this)
         );
 

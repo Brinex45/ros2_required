@@ -309,7 +309,7 @@ namespace arm{
 
         if (arm_mode_ == ArmMode::HOMING) {
             
-            joint[0].cmd = -250.0;
+            joint[0].cmd = 250.0;
             joint[1].cmd = 120.0;
             joint[2].cmd = 0.0;
             joint[3].cmd = 0.0;
@@ -342,7 +342,7 @@ namespace arm{
                 }
 
                 // RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Joint %s pid: %f, %f, %f", joint[i].name.c_str(), joint[i].i_error, period.seconds() * 1000, joint[i].cmd_pwm);
-                RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Joint %s command: %f, %f, %f", joint[i].name.c_str(), joint[i].pos, joint[i].cmd, joint[i].cmd_pwm);
+                // RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Joint %s command: %f, %f, %f", joint[i].name.c_str(), joint[i].pos, joint[i].cmd, joint[i].cmd_pwm);
                 // RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Joint %s enc data: %f", joint[i].name.c_str(), joint[i].enc);
                 
             }

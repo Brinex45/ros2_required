@@ -14,9 +14,9 @@
             <state_interface name="position" />
             <state_interface name="velocity" />
             <param name="encoder_counts_per_rev">8192</param>
-            <param name="pid_p">200</param>
+            <param name="pid_p">1000</param>
             <param name="pid_d">0</param>
-            <param name="pid_i">0.000</param>
+            <param name="pid_i">1</param>
             <param name="max_pwm">250</param>
             <param name="min_pwm">-250</param>
         </joint>
@@ -26,9 +26,9 @@
             <state_interface name="position" />
             <state_interface name="velocity" />
             <param name="encoder_counts_per_rev">8192</param>
-            <param name="pid_p">100</param>
+            <param name="pid_p">150</param>
             <param name="pid_d">0</param>
-            <param name="pid_i">0.000</param>
+            <param name="pid_i">0.1</param>
             <param name="max_pwm">120</param>
             <param name="min_pwm">-120</param>
         </joint>
@@ -51,8 +51,8 @@
             <state_interface name="velocity" />
             <param name="encoder_counts_per_rev">8192</param>
             <param name="pid_p">15</param>
-            <param name="pid_d">0</param>
-            <param name="pid_i">0.000</param>
+            <param name="pid_d">10</param>
+            <param name="pid_i">0.0003</param>
             <param name="max_pwm">30.0</param>
             <param name="min_pwm">-30.0</param>
         </joint>
