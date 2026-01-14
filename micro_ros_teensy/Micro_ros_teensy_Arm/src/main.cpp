@@ -199,7 +199,7 @@ void setup() {
     "/encoder_reset"));
 
   // create timer,
-  const unsigned int timer_timeout = 50;
+  const unsigned int timer_timeout = 10;
   RCCHECK(rclc_timer_init_default(
     &timer,
     &support,

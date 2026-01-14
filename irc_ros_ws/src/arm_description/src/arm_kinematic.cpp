@@ -49,9 +49,9 @@ Eigen::Matrix4d translate(double x, double y, double z) {
 
 Eigen::Matrix4d home_matrix = [] {
     Eigen::Matrix4d H;
-    H << 0, 0, 1, 630,
+    H << 0, 0, 1, 530.5,
          0, 1, 0, 0,
-        -1, 0, 0, 450,
+        -1, 0, 0, 480.5,
          0, 0, 0, 1;
     return H;
 }();
@@ -59,15 +59,15 @@ Eigen::Matrix4d home_matrix = [] {
 Eigen::Matrix4d Transform_matrix = home_matrix;
 
 #define unit_trans 1
-#define unit_rot 0.001
+#define unit_rot 0.002
 
 // #define unit_trans 0.1
 // #define unit_rot 0.1
 
-#define d1 15
+#define d1 30.5
 #define d5 80.5
 #define a2 450
-#define a3 480
+#define a3 450
 
 int8_t Left_X = 0;
 int8_t Left_Y = 0;
@@ -118,7 +118,7 @@ float angle4;
 float pos;   // z
 float pos2;
 
-int y;
+int y_t;
 
 float x;
 float y;
@@ -159,8 +159,8 @@ private:
 
     void joint_command_callback(const irc_custom_interfaces::msg::Ps4::SharedPtr msg) {
 
-        Left_X = msg->ps4_data_analog[0];
-        Left_Y = msg->ps4_data_analog[1];
+        Left_X = -msg->ps4_data_analog[0];
+        Left_Y = -msg->ps4_data_analog[1];
 
         L2 = msg->ps4_data_analog[2];
         R2 = msg->ps4_data_analog[5];
@@ -195,11 +195,11 @@ private:
         if (abs(Left_X_m) >= 0.3) {
             x_target += (Left_X_m * unit_trans);
         }
-        if (abs(Left_Y_m) >= 0.5) {
-            y = (Left_Y_m * 50);
+        if (abs(Right_Y_m) >= 0.5) {
+            y_t = (Right_Y_m * 50);
         } else y_target = 0;
-        if (abs(Right_Y_m) >= 0.2) {
-            z_target += (Right_Y_m * unit_trans);
+        if (abs(Left_Y_m) >= 0.3) {
+            z_target += (Left_Y_m * unit_trans);
         }
         if (abs(Right_X_m) >= 0.2) {
             y_rot += (Right_X_m * unit_rot);
@@ -211,7 +211,7 @@ private:
             gripper = (L1 - R1) * 40;
         } else gripper = 0;
 
-        RCLCPP_INFO(this->get_logger(), "x_target: %.2f, y_target: %.2f, z_target: %.2f, y_rot: %.2f", x_target, y_target, z_target, y_rot);
+        // RCLCPP_INFO(this->get_logger(), "x_target: %.2f, y_target: %.2f, z_target: %.2f, y_rot: %.2f", x_target, y_target, z_target, y_rot);
 
     }
     
@@ -306,12 +306,12 @@ private:
         kinematic();
 
         
-        turret = 1 * y;
-        theta_2 = (theta_2 + M_PI/2);
-        theta_3 = -((theta_3 - M_PI/2) + 0.122111);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           ;
-        theta_4 = (theta_4 - M_PI/2);
+        turret = 1 * y_t;
+        theta_2 = ((theta_2 + M_PI/2) - 0.15);
+        theta_3 = -((theta_3 - M_PI/2) + 0.15);
+        theta_4 = ((theta_4 - M_PI/2) + 0.02);
         theta_5 = 1 * z_rot;
-        // RCLCPP_INFO(this->get_logger(), "Theta1: %.2f, Theta2: %.2f, Theta3: %.2f, Theta4: %.2f, Theta234: %.2f", (theta_1), (theta_2), (theta_3), (theta_4), (theta_234));
+        RCLCPP_INFO(this->get_logger(), "Theta1: %.2f, Theta2: %.2f, Theta3: %.2f, Theta4: %.2f, Theta234: %.2f", (theta_1), (theta_2), (theta_3), (theta_4), (theta_234));
 
         std_msgs::msg::Float64MultiArray target_angles_;
         target_angles_.data = {theta_3, theta_2, turret, theta_4, theta_5, gripper};

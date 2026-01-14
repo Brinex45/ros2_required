@@ -47,7 +47,7 @@ class IrcPs4(Node):
         pygame.event.pump()
 
         axes = [0] * 7
-        buttons = [False] * 16
+        buttons = [False] * 17
 
         axes[0] = int(js.get_axis(0) * 127) if abs(js.get_axis(0)) > 0.24 else 0
         axes[1] = int(js.get_axis(1) * -127) if abs(js.get_axis(1)) > 0.24 else 0
@@ -58,6 +58,17 @@ class IrcPs4(Node):
 
         for i in range(min(js.get_numbuttons(), 16)):
             buttons[i] = bool(js.get_button(i))
+
+        for i in range(min(js.get_numhats(), 1)):
+            hat_x, hat_y = js.get_hat(i)
+            if hat_x == -1:
+                buttons[15] = True  # Left
+            elif hat_x == 1:
+                buttons[16] = True  # Right
+            if hat_y == 1:
+                buttons[13] = True  # Up
+            elif hat_y == -1:
+                buttons[14] = True  # Down
 
         return axes, buttons
         
