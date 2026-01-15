@@ -167,7 +167,7 @@ void subscription_callback(const void * msgin)
     left = msg->ps4_data_buttons[16];
     
     // motorRoll.rotate(50);
-    // digitalWrite(13, HIGH);
+    digitalWrite(13, HIGH);
 }
 
 void reset(const void * msgin)
@@ -344,15 +344,15 @@ void home() {
 
 }
 
-void setting(){
-  Serial.end();
-  delay(2000);
-  Serial.begin(115200);
-  set_microros_serial_transports(Serial);
-  delay(2000);
+// void setting(){
+//   Serial.end();
+//   delay(2000);
+//   Serial.begin(115200);
+//   set_microros_serial_transports(Serial);
+//   delay(2000);
   
-  digitalWrite(13, HIGH);
-}
+//   // digitalWrite(13, HIGH);
+// }
 
 void setup() {
 
@@ -417,9 +417,9 @@ void setup() {
 
 void loop() {
 
-  if (millis() - start_time > 3000) {
-    setting();
-  }
+  // if (millis() - start_time > 3000) {
+  //   setting();
+  // }
   // get_value();
 
   if (L_joystick_x > 20 || L_joystick_x < -20) {

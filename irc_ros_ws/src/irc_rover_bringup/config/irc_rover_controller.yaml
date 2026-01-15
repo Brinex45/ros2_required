@@ -1,6 +1,6 @@
 controller_manager:
   ros__parameters:
-    update_rate: 1000  # coltroller updates every 0.1 secs, how frequest data is processed and commands are sent
+    update_rate: 100  # coltroller updates every 0.1 secs, how frequest data is processed and commands are sent
 
     #controllers
     joint_state_broadcaster:

@@ -16,23 +16,23 @@
 #error This example is only avaliable for Arduino framework with serial transport.
 #endif
 
-int Right_front_motor_pin=8;
-int Right_front_dir_pin=9;
+int Right_front_motor_pin=10;
+int Right_front_dir_pin=11;
 
-int Left_front_motor_pin=0;
-int Left_front_dir_pin=1; 
+int Left_front_motor_pin=2;
+int Left_front_dir_pin=3; 
 
-int Right_middle_motor_pin=10;
-int Right_middle_dir_pin=11;
+int Right_middle_motor_pin=22;
+int Right_middle_dir_pin=23;
 
-int Left_middle_motor_pin=7;
-int Left_middle_dir_pin=6;
+int Left_middle_motor_pin=5;
+int Left_middle_dir_pin=4;
 
-int Right_back_motor_pin=22;
-int Right_back_dir_pin=23;
+int Right_back_motor_pin=36;
+int Right_back_dir_pin=37;
 
-int Left_back_motor_pin=5;
-int Left_back_dir_pin=4;
+int Left_back_motor_pin=7;
+int Left_back_dir_pin=6;
 
 Cytron R_F( Right_front_motor_pin, Right_front_dir_pin, 0);
 Cytron L_F( Left_front_motor_pin, Left_front_dir_pin, true);
