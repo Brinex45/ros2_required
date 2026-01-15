@@ -3,7 +3,7 @@ import pygame
 from rclpy.node import Node 
 from rclpy.parameter import Parameter
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy
-from irc_custom_interfaces.msg import Ps4 
+from irc_interfaces.msg import Ps4 
 
 def map_value(x, in_min, in_max, out_min, out_max):
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min

@@ -7,7 +7,7 @@
 
 #include "std_msgs/msg/header.hpp"
 #include "std_msgs/msg/float64_multi_array.hpp"
-#include "irc_custom_interfaces/msg/ps4.hpp"
+#include "irc_interfaces/msg/ps4.hpp"
 
 using namespace std::chrono_literals;
 using namespace std::placeholders;
@@ -152,12 +152,12 @@ float mapValue(float x,
 class ArmKinematics : public rclcpp::Node {
 private:
     rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr publisher_;
-    rclcpp::Subscription<irc_custom_interfaces::msg::Ps4>::SharedPtr subscriber_;
+    rclcpp::Subscription<irc_interfaces::msg::Ps4>::SharedPtr subscriber_;
     rclcpp::TimerBase::SharedPtr timer_;
 
     // std_msgs::msg::Float64MultiArray target_angles_;
 
-    void joint_command_callback(const irc_custom_interfaces::msg::Ps4::SharedPtr msg) {
+    void joint_command_callback(const irc_interfaces::msg::Ps4::SharedPtr msg) {
 
         Left_X = -msg->ps4_data_analog[0];
         Left_Y = -msg->ps4_data_analog[1];
@@ -311,7 +311,7 @@ private:
         theta_3 = -((theta_3 - M_PI/2) + 0.15);
         theta_4 = ((theta_4 - M_PI/2) + 0.02);
         theta_5 = 1 * z_rot;
-        RCLCPP_INFO(this->get_logger(), "Theta1: %.2f, Theta2: %.2f, Theta3: %.2f, Theta4: %.2f, Theta234: %.2f", (theta_1), (theta_2), (theta_3), (theta_4), (theta_234));
+        // RCLCPP_INFO(this->get_logger(), "Theta1: %.2f, Theta2: %.2f, Theta3: %.2f, Theta4: %.2f, Theta234: %.2f", (theta_1), (theta_2), (theta_3), (theta_4), (theta_234));
 
         std_msgs::msg::Float64MultiArray target_angles_;
         target_angles_.data = {theta_3, theta_2, turret, theta_4, theta_5, gripper};
@@ -326,7 +326,7 @@ public:
 
         auto qos = rclcpp::QoS(5).best_effort();
         
-        subscriber_ = this->create_subscription<irc_custom_interfaces::msg::Ps4>(
+        subscriber_ = this->create_subscription<irc_interfaces::msg::Ps4>(
             "ps4_data_arm",
             qos,//qos,
             std::bind(&ArmKinematics::joint_command_callback, this, _1)

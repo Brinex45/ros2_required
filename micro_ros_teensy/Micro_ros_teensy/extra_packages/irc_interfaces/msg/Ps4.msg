@@ -1,2 +1,2 @@
-int8[7] ps4_data_analog
-bool[16] ps4_data_buttons
+int8[6] ps4_data_analog
+bool[17] ps4_data_buttons

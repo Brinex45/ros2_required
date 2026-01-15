@@ -1,7 +1,7 @@
 import rclpy 
 from rclpy.node import Node 
 from rclpy.parameter import Parameter
-from irc_custom_interfaces.msg import Ps4 
+from irc_interfaces.msg import Ps4 
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy
 from geometry_msgs.msg import Twist
 

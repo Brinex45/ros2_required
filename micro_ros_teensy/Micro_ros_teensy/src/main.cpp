@@ -80,6 +80,7 @@ void subscription_callback(const void * msgin)
   
   linear_x = twist_msg.linear.x;
   angular_z = twist_msg.angular.z;
+  digitalWrite(13, 1); // Indicate message received
 
 }
 

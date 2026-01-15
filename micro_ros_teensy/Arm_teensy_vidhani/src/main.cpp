@@ -9,6 +9,13 @@
 #include <rclc/executor.h>
 
 #include <irc_interfaces/msg/ps4.h>
+#include <std_msgs/msg/bool.h>
+#include <rmw/qos_profiles.h>
+
+
+#if !defined(MICRO_ROS_TRANSPORT_ARDUINO_SERIAL)
+#error This example is only avaliable for Arduino framework with serial transport.
+#endif
 
 Encoder shoulder(41, 40);  
 Encoder wrist(32, 33);
@@ -22,26 +29,28 @@ Cytron motorTurret(0, 1, 0);
 Cytron motorRoll( 8, 9, 0); 
 Cytron motorGrip(28, 29, 0);
 
-#define slave_addr 9
+// #define slave_addr 9
 
 rcl_subscription_t subscription;
+rcl_subscription_t subscription_reset;
 irc_interfaces__msg__Ps4 ps4_msg;
+std_msgs__msg__Bool reset_msg;
 
 rclc_executor_t executor;
 rclc_support_t support;
 rcl_allocator_t allocator;
 rcl_node_t node;
-rcl_timer_t timer;
+// rcl_timer_t timer;
 
 #define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){error_loop();}}
 #define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){}}
 
 void error_loop() {
-  digitalWrite(13, HIGH);
+  // digitalWrite(13, HIGH);
   delay(1000);
 }
 
-//used in IK calculation
+// //used in IK calculation
 float a1;
 float a2;
 float angle1;
@@ -71,7 +80,7 @@ float length1 = 45;
 float length2 = 48;
 float length3 = 15;
 
-//for data received from nav teensy
+// for data received from nav teensy
 uint8_t data[5] = { 0 };
 int8_t lx;
 int8_t ly;
@@ -95,7 +104,7 @@ bool circle;
 bool triangle;
   
 
-  //for joint encoder angles
+//   //for joint encoder angles
 float Shoulder;
 float Elbow;
 float Wrist;                  
@@ -129,61 +138,49 @@ bool moving = false;
 //pwm for turret, roll, grip motor
 float pwm, pwm2, pwm3;
 
-
-// void get_value() {
-//   int i = 0;
-
-//   while (Wire1.available() >= 5) {
-//     Wire1.readBytes(data, 5);
-//     buttons = data[0];
-//     lx = data[1];
-//     ly = data[2];
-//     ry = data[3];
-//     omegi = data[4];
-//     // Serial.println((String) " "  + lx + "  " + ly +"  "+ry+"  "+ omegi);
-//   }
-
-//   up = ((buttons & (1 << 0)) ? 1 : 0);
-//   right = ((buttons & (1 << 1)) ? 1 : 0);
-//   down = ((buttons & (1 << 2)) ? 1 : 0);
-//   left = ((buttons & (1 << 3)) ? 1 : 0);
-//   triangle = ((buttons & (1 << 4)) ? 1 : 0);
-//   circle = ((buttons & (1 << 5)) ? 1 : 0);
-//   cross = ((buttons & (1 << 6)) ? 1 : 0);
-//   square = ((buttons & (1 << 7)) ? 1 : 0);
-
-//   L_joystick_x = map(lx, -127, 127, -65, 65);
-//   L_joystick_y = map(ly, -127, 127, -60, 60);   
-//   R_joystick_y = map(ry, -127, 127, -230, 230);
-
-// }
+long start_time = 0;
 
 void subscription_callback(const void * msgin)
 {
   if (msgin == NULL) {
     return;
   }
-
+  
   const irc_interfaces__msg__Ps4 * msg = (const irc_interfaces__msg__Ps4 *) msgin;
-
+  
   // for (size_t i = 0; i < 6; i++) {
-  //   joint_pwm.data.data[i] = msg->data.data[i];
-  // }
+    //   joint_pwm.data.data[i] = msg->data.data[i];
+    // }
+    
+    L_joystick_x = double(msg->ps4_data_analog[0]);
+    L_joystick_y = double(msg->ps4_data_analog[1]);
+    R_joystick_y = double(msg->ps4_data_analog[4]);
 
-  L_joystick_x = msg->ps4_data_analog[0];
-  L_joystick_y = msg->ps4_data_analog[1];
-  R_joystick_y = msg->ps4_data_analog[4];
+    cross = msg->ps4_data_buttons[0];
+    circle = msg->ps4_data_buttons[1];  
+    triangle = msg->ps4_data_buttons[2];
+    square = msg->ps4_data_buttons[3];
+    
+    up = msg->ps4_data_buttons[13];
+    right = msg->ps4_data_buttons[15];
+    down = msg->ps4_data_buttons[14];
+    left = msg->ps4_data_buttons[16];
+    
+    // motorRoll.rotate(50);
+    // digitalWrite(13, HIGH);
+}
 
-  cross = msg->ps4_data_buttons[0];
-  circle = msg->ps4_data_buttons[1];  
-  triangle = msg->ps4_data_buttons[2];
-  square = msg->ps4_data_buttons[3];
+void reset(const void * msgin)
+{
+  if (msgin == NULL) {
+    return;
+  }
 
-  up = msg->ps4_data_buttons[13];
-  right = msg->ps4_data_buttons[14];
-  down = msg->ps4_data_buttons[15];
-  left = msg->ps4_data_buttons[16];
+  const std_msgs__msg__Bool * msg = (const std_msgs__msg__Bool *) msgin;
+    
+    bool reset_button = msg->data;
 
+    start_time = millis();
 }
 
 void getAngles() {
@@ -347,12 +344,26 @@ void home() {
 
 }
 
+void setting(){
+  Serial.end();
+  delay(2000);
+  Serial.begin(115200);
+  set_microros_serial_transports(Serial);
+  delay(2000);
+  
+  digitalWrite(13, HIGH);
+}
+
 void setup() {
 
   delay(2000);
   Serial.begin(115200);
   set_microros_serial_transports(Serial);
   delay(2000);
+
+  rmw_qos_profile_t qos_profile = rmw_qos_profile_default;
+  qos_profile.reliability = RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
+
   // Wire1.begin(9);
   // Wire1.onReceive(get_value);
   // Wire2.begin();
@@ -363,34 +374,52 @@ void setup() {
 
   RCCHECK(rclc_node_init_default(&node, "micro_ros_arm", "", &support));
 
-  RCCHECK(rclc_subscription_init_default(
+  RCCHECK(rclc_subscription_init(
     &subscription,
     &node,
     ROSIDL_GET_MSG_TYPE_SUPPORT(irc_interfaces, msg, Ps4),
-    "/ps4_data_arm"));
+    "/ps4_data_arm",
+    &qos_profile));
 
-  RCCHECK(rclc_executor_init(&executor, &support.context, 1, &allocator));
-  RCCHECK(rclc_executor_add_timer(&executor, &timer));
+  RCCHECK(rclc_subscription_init(
+    &subscription_reset,
+    &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool),
+    "/reset_check",
+    &qos_profile));
+
+  RCCHECK(rclc_executor_init(&executor, &support.context, 2, &allocator));
+  // RCCHECK(rclc_executor_add_timer(&executor, &timer));
   RCCHECK(rclc_executor_add_subscription(
     &executor,
     &subscription,
     &ps4_msg,
     &subscription_callback,
     ON_NEW_DATA));
+  RCCHECK(rclc_executor_add_subscription(
+    &executor,
+    &subscription_reset,
+    &reset_msg,
+    &reset,
+    ON_NEW_DATA));
 
   pinMode(13, OUTPUT);
-  digitalWrite(13, HIGH);
-
+  
   home();
   turret.write(0);
   elbow.write(0);
   wrist.write(0);
   shoulder.write(0);
-
+  
+  start_time = millis();
+  // digitalWrite(13, HIGH);
 }
 
 void loop() {
 
+  if (millis() - start_time > 3000) {
+    setting();
+  }
   // get_value();
 
   if (L_joystick_x > 20 || L_joystick_x < -20) {
@@ -499,8 +528,8 @@ void loop() {
 // }
 
  move(x_target, y_target, z_target, theta_target);
-  //moveShoulder(70);
-  //moveElbow(110);
+  // moveShoulder(70);
+  // moveElbow(110);
 
   prev_x_target = x_target;
   prev_y_target = y_target;
@@ -508,5 +537,7 @@ void loop() {
   prev_theta_target = theta_target;
 
 
-  delay(10);
+  // delay(10);
+
+  RCSOFTCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(10)));
 }

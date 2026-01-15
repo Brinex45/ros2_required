@@ -9,7 +9,7 @@
 
   <depend>pygame</depend>
   <depend>rclpy</depend>
-  <depend>irc_custom_interfaces</depend>
+  <depend>irc_interfaces</depend>
   <depend>geometry_msgs</depend>
 
   <test_depend>ament_copyright</test_depend>

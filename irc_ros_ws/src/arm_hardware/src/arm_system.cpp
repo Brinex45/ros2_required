@@ -320,7 +320,7 @@ namespace arm{
                 cmd_msg->data[i] = joint[i].cmd;
             }
 
-            RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Homing complete. Switching to CLOSED_LOOP mode.");
+            // RCLCPP_INFO(rclcpp::get_logger("ArmHardware"), "Homing complete. Switching to CLOSED_LOOP mode.");
             
             if (kill_switch_state_ && kill_switch_state_->data == 7) {
                 auto encoder_reset_msg_ = std::make_unique<std_msgs::msg::Bool>();
