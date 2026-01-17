@@ -8,17 +8,18 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
 
-# add_executable(arm_kinematics_node src/arm_kinematic.cpp)
-# ament_target_dependencies(arm_kinematics_node rclcpp irc_interfaces std_msgs joint_trajectory_controller)
-# target_link_libraries(arm_kinematics_node Eigen3::Eigen)
-# install(TARGETS
-#   arm_kinematics_node
-#   DESTINATION lib/${PROJECT_NAME}
-# )
+add_executable(check_node src/check_node.cpp)
+ament_target_dependencies(check_node rclcpp std_msgs)
+# target_link_libraries(check_node Eigen3::Eigen)
+install(TARGETS
+  check_node
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 install(
-  DIRECTORY urdf meshes
+  DIRECTORY urdf meshes src
   DESTINATION share/${PROJECT_NAME}/
 )
 
