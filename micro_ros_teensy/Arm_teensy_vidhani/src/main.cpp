@@ -41,6 +41,7 @@ Cytron motorGrip(28, 29, 0);
 // #define slave_addr 9
 
 rcl_timer_t encoder_readings_timer;
+rcl_timer_t comm_check_timer;
 
 rcl_subscription_t subscription;
 rcl_subscription_t subscription_arm;
@@ -162,7 +163,7 @@ bool moving = false;
 //pwm for turret, roll, grip motor
 float pwm, pwm2, pwm3;
 
-long start_time = 0;
+int count = 4;
 
 void enc_pub_callback(rcl_timer_t * timer, int64_t last_call_time){
   RCLC_UNUSED(last_call_time);
@@ -207,15 +208,11 @@ void subscription_callback_arm(const void * msgin)
     // digitalWrite(13, HIGH);
 }
 
-void comm_check_callback(const void * msgin){
-
-  if (msgin == NULL) {
-    return;
+void comm_check_callback(rcl_timer_t * timer, int64_t last_call_time){
+  RCLC_UNUSED(last_call_time);
+  if (timer != NULL) {
+    count--;
   }
-
-  const std_msgs__msg__Bool* msg = (const std_msgs__msg__Bool*) msgin;
-
-  start_time = millis();
 }
 
 void subscription_callback_rover(const void * msgin)
@@ -465,12 +462,6 @@ void init_microros()
     &qos_profile));
 
   RCCHECK(rclc_subscription_init_default(
-    &comm_check_sub_,
-    &node,
-    ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool),
-    "/comm_check"));
-
-  RCCHECK(rclc_subscription_init_default(
     &reset_sub_,
     &node,
     ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool),
@@ -490,24 +481,29 @@ void init_microros()
     RCL_MS_TO_NS(timer_timeout),
     enc_pub_callback));
 
+  // create timer,
+  const unsigned int timer_timeout = 1000;
+  RCCHECK(rclc_timer_init_default(
+    &comm_check_timer,
+    &support,
+    RCL_MS_TO_NS(timer_timeout),
+    comm_check_callback));
+
   RCCHECK(rclc_executor_init(&executor, &support.context, 5, &allocator));
 
   RCCHECK(rclc_executor_add_timer(
     &executor, 
     &encoder_readings_timer));
+
+  RCCHECK(rclc_executor_add_timer(
+    &executor, 
+    &comm_check_timer));
   
   RCCHECK(rclc_executor_add_subscription(
     &executor,
     &subscription_arm,
     &ps4_msg,
     &subscription_callback_arm,
-    ON_NEW_DATA));
-
-  RCCHECK(rclc_executor_add_subscription(
-    &executor,
-    &comm_check_sub_,
-    &check_,
-    &comm_check_callback,
     ON_NEW_DATA));
 
   RCCHECK(rclc_executor_add_subscription(
@@ -555,18 +551,15 @@ void setup() {
   elbow.write(0);
   wrist.write(0);
   shoulder.write(0);
-  
-  start_time = millis();
 
   // digitalWrite(13, HIGH);
 }
 
 void loop() {
   
-  if (millis() - start_time > 4000) {
+  if (count == 0) {
     destroy_microros();
     init_microros();
-    start_time = millis();
     
     L_joystick_x = 0;
     L_joystick_y = 0;
