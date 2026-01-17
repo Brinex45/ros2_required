@@ -55,6 +55,7 @@ irc_interfaces__msg__Ps4 ps4_msg;
 std_msgs__msg__Bool reset;
 std_msgs__msg__Bool check_;
 std_msgs__msg__Int64MultiArray encoder_data;
+int64_t encoder_buf[6];
 
 rclc_executor_t executor;
 rclc_support_t support;
@@ -165,6 +166,7 @@ float pwm, pwm2, pwm3;
 
 long start_time = 0;
 int count = 4;
+bool flag = false;
 
 void enc_pub_callback(rcl_timer_t * timer, int64_t last_call_time){
   RCLC_UNUSED(last_call_time);
@@ -448,116 +450,126 @@ void init_microros()
 
   rcl_ret_t ret = rmw_uros_ping_agent(timeout_ms, attempts);
 
-  // if (ret != RMW_RET_OK)
-  // {
-  //     // Unreachable agent, exiting program.
-  //     while(1);
-  // }
-  
-  allocator = rcl_get_default_allocator();
+  if (ret == RMW_RET_OK)
+  {
+    allocator = rcl_get_default_allocator();
 
-  RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
-  RCCHECK(rclc_node_init_default(&node, "micro_ros_arm", "", &support));
+    RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
+    RCCHECK(rclc_node_init_default(&node, "micro_ros_arm", "", &support));
 
-  RCCHECK(rclc_subscription_init(
-    &subscription_arm,
-    &node,
-    ROSIDL_GET_MSG_TYPE_SUPPORT(irc_interfaces, msg, Ps4),
-    "/ps4_data_arm",
-    &qos_profile));
+    RCCHECK(rclc_subscription_init(
+      &subscription_arm,
+      &node,
+      ROSIDL_GET_MSG_TYPE_SUPPORT(irc_interfaces, msg, Ps4),
+      "/ps4_data_arm",
+      &qos_profile));
 
-  RCCHECK(rclc_subscription_init(
-    &subscription_rover,
-    &node,
-    ROSIDL_GET_MSG_TYPE_SUPPORT(irc_interfaces, msg, Ps4),
-    "/ps4_data_rover",
-    &qos_profile));
+    RCCHECK(rclc_subscription_init(
+      &subscription_rover,
+      &node,
+      ROSIDL_GET_MSG_TYPE_SUPPORT(irc_interfaces, msg, Ps4),
+      "/ps4_data_rover",
+      &qos_profile));
 
-  RCCHECK(rclc_subscription_init_default(
-    &comm_check_sub_,
-    &node,
-    ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool),
-    "/comm_check"));
+    RCCHECK(rclc_subscription_init_default(
+      &comm_check_sub_,
+      &node,
+      ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool),
+      "/comm_check"));
 
-  RCCHECK(rclc_subscription_init_default(
-    &reset_sub_,
-    &node,
-    ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool),
-    "/reset_arm"));
+    RCCHECK(rclc_subscription_init_default(
+      &reset_sub_,
+      &node,
+      ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool),
+      "/reset_arm"));
 
-  RCCHECK(rclc_publisher_init_default(
-    &encoder_pub_,
-    &node,
-    ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int64MultiArray),
-    "/arm_encoder"));
+    RCCHECK(rclc_publisher_init_default(
+      &encoder_pub_,
+      &node,
+      ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int64MultiArray),
+      "/arm_encoder"));
 
-  // create timer,
-  const unsigned int timer_timeout = 10;
-  RCCHECK(rclc_timer_init_default(
-    &encoder_readings_timer,
-    &support,
-    RCL_MS_TO_NS(timer_timeout),
-    enc_pub_callback));
+    // create timer,
+    const unsigned int timer_timeout = 10;
+    RCCHECK(rclc_timer_init_default(
+      &encoder_readings_timer,
+      &support,
+      RCL_MS_TO_NS(timer_timeout),
+      enc_pub_callback));
 
-  // create timer,
-  const unsigned int comm_check_timer = 1000;
-  RCCHECK(rclc_timer_init_default(
-    &comm_chk_timer,
-    &support,
-    RCL_MS_TO_NS(comm_check_timer),
-    comm_callback));
+    // create timer,
+    const unsigned int comm_check_timer = 1000;
+    RCCHECK(rclc_timer_init_default(
+      &comm_chk_timer,
+      &support,
+      RCL_MS_TO_NS(comm_check_timer),
+      comm_callback));
 
-  RCCHECK(rclc_executor_init(&executor, &support.context, 6, &allocator));
+    RCCHECK(rclc_executor_init(&executor, &support.context, 6, &allocator));
 
-  RCCHECK(rclc_executor_add_timer(
-    &executor, 
-    &encoder_readings_timer));
+    RCCHECK(rclc_executor_add_timer(
+      &executor, 
+      &encoder_readings_timer));
 
-  RCCHECK(rclc_executor_add_timer(
-    &executor, 
-    &comm_chk_timer));
-  
-  RCCHECK(rclc_executor_add_subscription(
-    &executor,
-    &subscription_arm,
-    &ps4_msg,
-    &subscription_callback_arm,
-    ON_NEW_DATA));
+    RCCHECK(rclc_executor_add_timer(
+      &executor, 
+      &comm_chk_timer));
+    
+    RCCHECK(rclc_executor_add_subscription(
+      &executor,
+      &subscription_arm,
+      &ps4_msg,
+      &subscription_callback_arm,
+      ON_NEW_DATA));
 
-  RCCHECK(rclc_executor_add_subscription(
-    &executor,
-    &comm_check_sub_,
-    &check_,
-    &comm_check_callback,
-    ON_NEW_DATA));
+    RCCHECK(rclc_executor_add_subscription(
+      &executor,
+      &comm_check_sub_,
+      &check_,
+      &comm_check_callback,
+      ON_NEW_DATA));
 
-  RCCHECK(rclc_executor_add_subscription(
-    &executor,
-    &subscription_rover,
-    &ps4_msg,
-    &subscription_callback_rover,
-    ON_NEW_DATA));
+    RCCHECK(rclc_executor_add_subscription(
+      &executor,
+      &subscription_rover,
+      &ps4_msg,
+      &subscription_callback_rover,
+      ON_NEW_DATA));
 
-  RCCHECK(rclc_executor_add_subscription(
-    &executor,
-    &reset_sub_,
-    &reset,
-    &reset_callback,
-    ON_NEW_DATA));
+    RCCHECK(rclc_executor_add_subscription(
+      &executor,
+      &reset_sub_,
+      &reset,
+      &reset_callback,
+      ON_NEW_DATA));
 
-  encoder_data.data.size = 6;
-  encoder_data.data.capacity = 6;
-  encoder_data.data.data = (int64_t*) malloc(6 * sizeof(int64_t));
+    encoder_data.data.data = encoder_buf;
+    encoder_data.data.size = 6;
+    encoder_data.data.capacity = 6;
+    flag = true;
+  }
 
 }
 
 void destroy_microros()
 {
-  rcl_subscription_fini(&subscription, &node);
+  rcl_timer_fini(&encoder_readings_timer);
+  rcl_timer_fini(&comm_chk_timer);
+
+  rcl_subscription_fini(&subscription_arm, &node);
+  rcl_subscription_fini(&comm_check_sub_, &node);
+  rcl_subscription_fini(&subscription_rover, &node);
+  rcl_subscription_fini(&reset_sub_, &node);
 
   rclc_executor_fini(&executor);
   rcl_node_fini(&node);
   rclc_support_fini(&support);
+  if (encoder_data.data.data != NULL)
+  {
+    free(encoder_data.data.data);
+    encoder_data.data.data = NULL;
+  }
+  flag = false;
 }
 
 void setup() {
@@ -585,7 +597,9 @@ void setup() {
 void loop() {
 
   if (count == 0) {
-    destroy_microros();
+    if(flag == true){
+      destroy_microros();
+    }
     // init_microros();
     start_time = millis();
 
@@ -602,6 +616,7 @@ void loop() {
     right = 0;
     down = 0;
     left = 0;
+    count = 3;
   }
 
   if (L_joystick_x > 20 || L_joystick_x < -20) {
