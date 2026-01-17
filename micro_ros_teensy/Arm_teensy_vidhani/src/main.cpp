@@ -12,6 +12,7 @@
 
 #include <irc_interfaces/msg/ps4.h>
 #include <std_msgs/msg/bool.h>
+#include <std_msgs/msg/int64_multi_array.h>
 #include <rmw/qos_profiles.h>
 
 Adafruit_PWMServoDriver pca = Adafruit_PWMServoDriver(0x40, Wire2);
@@ -39,16 +40,23 @@ Cytron motorGrip(28, 29, 0);
 
 // #define slave_addr 9
 
+rcl_timer_t encoder_readings_timer;
+
+rcl_subscription_t subscription;
 rcl_subscription_t subscription_arm;
 rcl_subscription_t subscription_rover;
+rcl_subscription_t reset_sub_;
+
+rcl_publisher_t encoder_pub_;
+
 irc_interfaces__msg__Ps4 ps4_msg;
-std_msgs__msg__Bool reset_msg;
+std_msgs__msg__Bool reset;
+std_msgs__msg__Int64MultiArray encoder_data;
 
 rclc_executor_t executor;
 rclc_support_t support;
 rcl_allocator_t allocator;
 rcl_node_t node;
-// rcl_timer_t timer;
 
 #define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){error_loop();}}
 #define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){}}
@@ -116,7 +124,7 @@ bool square;
 bool cross;
 bool circle;
 bool triangle;
-  
+
 
 //   //for joint encoder angles
 float Shoulder;
@@ -154,29 +162,66 @@ float pwm, pwm2, pwm3;
 
 long start_time = 0;
 
+void enc_pub_callback(rcl_timer_t * timer, int64_t last_call_time){
+  RCLC_UNUSED(last_call_time);
+  if (timer != NULL) {
+    encoder_data.data.data[0] = elbow.read();
+    encoder_data.data.data[1] = shoulder.read();
+    encoder_data.data.data[2] = 0;
+    encoder_data.data.data[3] = wrist.read();
+    encoder_data.data.data[4] = 0;
+    encoder_data.data.data[5] = 0;
+    RCSOFTCHECK(rcl_publish(&encoder_pub_, &encoder_data, NULL));
+  }
+}
+
+void reset_callback(const void * msgin){
+
+  if (msgin == NULL) {
+    return;
+  }
+  
+  const std_msgs__msg__Bool * msg = (const std_msgs__msg__Bool *) msgin;
+
+  if(msg->data){
+    home();
+    turret.write(0);
+    elbow.write(0);
+    wrist.write(0);
+    shoulder.write(0);
+  }
+}
+
 void subscription_callback_arm(const void * msgin)
 {
   if (msgin == NULL) {
     return;
   }
-
+  
   const irc_interfaces__msg__Ps4 * msg = (const irc_interfaces__msg__Ps4 *) msgin;
-
+  
+  // for (size_t i = 0; i < 6; i++) {
+    //   joint_pwm.data.data[i] = msg->data.data[i];
+    // }
+    
     L_joystick_x = double(msg->ps4_data_analog[0]);
     L_joystick_y = double(msg->ps4_data_analog[1]);
     R_joystick_y = double(msg->ps4_data_analog[4]);
 
     cross = msg->ps4_data_buttons[0];
-    circle = msg->ps4_data_buttons[1];
+    circle = msg->ps4_data_buttons[1];  
     triangle = msg->ps4_data_buttons[2];
     square = msg->ps4_data_buttons[3];
-
+    
     up = msg->ps4_data_buttons[13];
     right = msg->ps4_data_buttons[15];
     down = msg->ps4_data_buttons[14];
     left = msg->ps4_data_buttons[16];
+    
+    // motorRoll.rotate(50);
+    digitalWrite(13, HIGH);
 
-    // digitalWrite(13, HIGH);
+    start_time = millis();
 }
 
 void subscription_callback_rover(const void * msgin)
@@ -187,22 +232,21 @@ void subscription_callback_rover(const void * msgin)
 
   const irc_interfaces__msg__Ps4 * msg = (const irc_interfaces__msg__Ps4 *) msgin;
 
-    // L_joystick_x = double(msg->ps4_data_analog[0]);
-    // L_joystick_y = double(msg->ps4_data_analog[1]);
-    R_joystick_x_rover = double(msg->ps4_data_analog[3]);
-    R_joystick_y_rover = double(msg->ps4_data_analog[4]);
+  // L_joystick_x = double(msg->ps4_data_analog[0]);
+  // L_joystick_y = double(msg->ps4_data_analog[1]);
+  R_joystick_x_rover = double(msg->ps4_data_analog[3]);
+  R_joystick_y_rover = double(msg->ps4_data_analog[4]);
 
-    // cross = msg->ps4_data_buttons[0];
-    // circle = msg->ps4_data_buttons[1];
-    // triangle = msg->ps4_data_buttons[2];
-    // square = msg->ps4_data_buttons[3];
-    
-    // up = msg->ps4_data_buttons[13];
-    // right = msg->ps4_data_buttons[15];
-    // down = msg->ps4_data_buttons[14];
-    // left = msg->ps4_data_buttons[16];
-    
-    // digitalWrite(13, HIGH);
+  // cross = msg->ps4_data_buttons[0];
+  // circle = msg->ps4_data_buttons[1];
+  // triangle = msg->ps4_data_buttons[2];
+  // square = msg->ps4_data_buttons[3];
+  // up = msg->ps4_data_buttons[13];
+  // right = msg->ps4_data_buttons[15];
+  // down = msg->ps4_data_buttons[14];
+  // left = msg->ps4_data_buttons[16];
+  
+  // digitalWrite(13, HIGH);
 }
 
 void cam_servo_rotate(int channel, int angle) {
@@ -371,34 +415,28 @@ void home() {
 
 }
 
-// void setting(){
-//   Serial.end();
-//   delay(2000);
-//   Serial.begin(115200);
-//   set_microros_serial_transports(Serial);
-//   delay(2000);
-  
-//   // digitalWrite(13, HIGH);
-// }
-
-void setup() {
-
-  delay(2000);
-  Serial.begin(115200);
+void init_microros()
+{
   set_microros_serial_transports(Serial);
-  delay(2000);
 
   rmw_qos_profile_t qos_profile = rmw_qos_profile_default;
   qos_profile.reliability = RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
 
-  // Wire1.begin(9);
-  // Wire1.onReceive(get_value);
-  // Wire2.begin();
+  // Wait for agent successful ping for 5 seconds.
+  const int timeout_ms = 1000;
+  const uint8_t attempts = 5;
 
+  rcl_ret_t ret = rmw_uros_ping_agent(timeout_ms, attempts);
+
+  // if (ret != RMW_RET_OK)
+  // {
+  //     // Unreachable agent, exiting program.
+  //     while(1);
+  // }
+  
   allocator = rcl_get_default_allocator();
 
   RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
-
   RCCHECK(rclc_node_init_default(&node, "micro_ros_arm", "", &support));
 
   RCCHECK(rclc_subscription_init(
@@ -415,20 +453,76 @@ void setup() {
     "/ps4_data_rover",
     &qos_profile));
 
-  RCCHECK(rclc_executor_init(&executor, &support.context, 2, &allocator));
-  // RCCHECK(rclc_executor_add_timer(&executor, &timer));
+  RCCHECK(rclc_subscription_init_default(
+    &reset_sub_,
+    &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool),
+    "/reset_arm"));
+
+  RCCHECK(rclc_publisher_init_default(
+    &encoder_pub_,
+    &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int64MultiArray),
+    "/arm_encoder"));
+
+  // create timer,
+  const unsigned int timer_timeout = 10;
+  RCCHECK(rclc_timer_init_default(
+    &encoder_readings_timer,
+    &support,
+    RCL_MS_TO_NS(timer_timeout),
+    enc_pub_callback));
+
+  RCCHECK(rclc_executor_init(&executor, &support.context, 1, &allocator));
+
+  RCCHECK(rclc_executor_add_timer(
+    &executor, 
+    &encoder_readings_timer));
+  
   RCCHECK(rclc_executor_add_subscription(
     &executor,
     &subscription_arm,
     &ps4_msg,
     &subscription_callback_arm,
     ON_NEW_DATA));
+
   RCCHECK(rclc_executor_add_subscription(
     &executor,
     &subscription_rover,
     &ps4_msg,
     &subscription_callback_rover,
     ON_NEW_DATA));
+
+  RCCHECK(rclc_executor_add_subscription(
+    &executor,
+    &reset_sub_,
+    &reset,
+    &reset_callback,
+    ON_NEW_DATA));
+
+  encoder_data.data.size = 6;
+  encoder_data.data.capacity = 6;
+  encoder_data.data.data = (int64_t*) malloc(6 * sizeof(int64_t));
+
+}
+
+void destroy_microros()
+{
+  rcl_subscription_fini(&subscription, &node);
+
+  rclc_executor_fini(&executor);
+  rcl_node_fini(&node);
+  rclc_support_fini(&support);
+}
+
+void setup() {
+
+  delay(2000);
+  Serial.begin(115200);
+  delay(2000);
+
+
+  init_microros();
 
   pinMode(13, OUTPUT);
   
@@ -439,10 +533,31 @@ void setup() {
   shoulder.write(0);
   
   start_time = millis();
+
   // digitalWrite(13, HIGH);
 }
 
 void loop() {
+
+  if (millis() - start_time > 3000) {
+    destroy_microros();
+    init_microros();
+    start_time = millis();
+
+    L_joystick_x = 0;
+    L_joystick_y = 0;
+    R_joystick_y = 0;
+
+    cross = 0;
+    circle = 0;
+    triangle = 0;
+    square = 0;
+    
+    up = 0;
+    right = 0;
+    down = 0;
+    left = 0;
+  }
 
   if (L_joystick_x > 20 || L_joystick_x < -20) {
     x_target += L_joystick_x * k;
@@ -461,7 +576,8 @@ void loop() {
     if (square) pwm = 70;
     if (circle) pwm = -70;
     motorTurret.rotate(pwm);
-  }else {
+  }
+  else {
     motorTurret.rotate(0);
   }
 
@@ -469,7 +585,9 @@ void loop() {
     if (right) pwm2 = 30;
     if (left) pwm2 = -30;
     motorRoll.rotate(pwm2);
-  }else {
+  }
+
+  else {
     motorRoll.rotate(0);
   }
 
@@ -477,8 +595,8 @@ void loop() {
     if (up) pwm3 = 50;
     if (down) pwm3 = -50;
     motorGrip.rotate(pwm3);
-    
-  }else {
+  }
+  else {
     motorGrip.rotate(0);
   }
 
@@ -490,7 +608,6 @@ void loop() {
     y_servo_angle += R_joystick_y_rover * 0.1;
     y_servo_angle = constrain(y_servo_angle, 0, 180);
   }
-  
   cam_servo_rotate(SERVO_CHANNEL_x, x_servo_angle);
   cam_servo_rotate(SERVO_CHANNEL_y, y_servo_angle);
 
@@ -501,7 +618,7 @@ void loop() {
   prev_z_target = z_target;
   prev_theta_target = theta_target;
 
-
+  
   // delay(10);
 
   RCSOFTCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(10)));
