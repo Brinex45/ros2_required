@@ -45,12 +45,14 @@ rcl_timer_t encoder_readings_timer;
 rcl_subscription_t subscription;
 rcl_subscription_t subscription_arm;
 rcl_subscription_t subscription_rover;
+rcl_subscription_t comm_check_sub_;
 rcl_subscription_t reset_sub_;
 
 rcl_publisher_t encoder_pub_;
 
 irc_interfaces__msg__Ps4 ps4_msg;
 std_msgs__msg__Bool reset;
+std_msgs__msg__Bool check_;
 std_msgs__msg__Int64MultiArray encoder_data;
 
 rclc_executor_t executor;
@@ -220,8 +222,17 @@ void subscription_callback_arm(const void * msgin)
     
     // motorRoll.rotate(50);
     digitalWrite(13, HIGH);
+}
 
-    start_time = millis();
+void comm_check_callback(const void * msgin){
+
+  if (msgin == NULL) {
+    return;
+  }
+
+  const std_msgs__msg__Bool* msg = (const std_msgs__msg__Bool*) msgin;
+
+  start_time = millis();
 }
 
 void subscription_callback_rover(const void * msgin)
@@ -454,6 +465,12 @@ void init_microros()
     &qos_profile));
 
   RCCHECK(rclc_subscription_init_default(
+    &comm_check_sub_,
+    &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool),
+    "/comm_check"));
+
+  RCCHECK(rclc_subscription_init_default(
     &reset_sub_,
     &node,
     ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool),
@@ -473,7 +490,7 @@ void init_microros()
     RCL_MS_TO_NS(timer_timeout),
     enc_pub_callback));
 
-  RCCHECK(rclc_executor_init(&executor, &support.context, 1, &allocator));
+  RCCHECK(rclc_executor_init(&executor, &support.context, 5, &allocator));
 
   RCCHECK(rclc_executor_add_timer(
     &executor, 
@@ -484,6 +501,13 @@ void init_microros()
     &subscription_arm,
     &ps4_msg,
     &subscription_callback_arm,
+    ON_NEW_DATA));
+
+  RCCHECK(rclc_executor_add_subscription(
+    &executor,
+    &comm_check_sub_,
+    &check_,
+    &comm_check_callback,
     ON_NEW_DATA));
 
   RCCHECK(rclc_executor_add_subscription(
