@@ -4,7 +4,7 @@
 #include <Cytron.h>
 #include <Encoder.h>
 #include <Wire.h>
-#include <Adafruit_PWMServoDriver.h>
+// #include <Adafruit_PWMServoDriver.h>
 
 #include <rcl/rcl.h>
 #include <rclc/rclc.h>
@@ -15,12 +15,12 @@
 #include <std_msgs/msg/int64_multi_array.h>
 #include <rmw/qos_profiles.h>
 
-Adafruit_PWMServoDriver pca = Adafruit_PWMServoDriver(0x40, Wire2);
+// Adafruit_PWMServoDriver pca = Adafruit_PWMServoDriver(0x40, Wire2);
 
-#define SERVO_CHANNEL_x 1
-#define SERVO_CHANNEL_y 2
-#define SERVO_MIN 150
-#define SERVO_MAX 600
+// #define SERVO_CHANNEL_x 1
+// #define SERVO_CHANNEL_y 2
+// #define SERVO_MIN 150
+// #define SERVO_MAX 600
 
 #if !defined(MICRO_ROS_TRANSPORT_ARDUINO_SERIAL)
 #error This example is only avaliable for Arduino framework with serial transport.
@@ -186,23 +186,6 @@ void comm_callback(rcl_timer_t * timer, int64_t last_call_time){
   }
 }
 
-void reset_callback(const void * msgin){
-
-  if (msgin == NULL) {
-    return;
-  }
-  
-  const std_msgs__msg__Bool * msg = (const std_msgs__msg__Bool *) msgin;
-
-  if(msg->data){
-    home();
-    turret.write(0);
-    elbow.write(0);
-    wrist.write(0);
-    shoulder.write(0);
-  }
-}
-
 void subscription_callback_arm(const void * msgin)
 {
   if (msgin == NULL) {
@@ -269,10 +252,10 @@ void subscription_callback_rover(const void * msgin)
   // digitalWrite(13, HIGH);
 }
 
-void cam_servo_rotate(int channel, int angle) {
-  int pwm_servo = map(angle, 0, 180, SERVO_MIN, SERVO_MAX);
-  pca.setPWM(channel, 0, pwm_servo);
-}
+// void cam_servo_rotate(int channel, int angle) {
+//   int pwm_servo = map(angle, 0, 180, SERVO_MIN, SERVO_MAX);
+//   pca.setPWM(channel, 0, pwm_servo);
+// }
 
 void getAngles() {
 
@@ -435,6 +418,23 @@ void home() {
 
 }
 
+void reset_callback(const void * msgin){
+
+  if (msgin == NULL) {
+    return;
+  }
+  
+  const std_msgs__msg__Bool * msg = (const std_msgs__msg__Bool *) msgin;
+
+  if(msg->data){
+    home();
+    turret.write(0);
+    elbow.write(0);
+    wrist.write(0);
+    shoulder.write(0);
+  }
+}
+
 void init_microros()
 {
   set_microros_serial_transports(Serial);
@@ -586,7 +586,7 @@ void loop() {
 
   if (count == 0) {
     destroy_microros();
-    init_microros();
+    // init_microros();
     start_time = millis();
 
     L_joystick_x = 0;
@@ -645,16 +645,16 @@ void loop() {
     motorGrip.rotate(0);
   }
 
-  if(abs(R_joystick_x_rover) >= 20){
-    x_servo_angle += R_joystick_x_rover * 0.1;
-    x_servo_angle = constrain(x_servo_angle, 0, 180);
-  }
-  if(abs(R_joystick_y_rover) >= 20){
-    y_servo_angle += R_joystick_y_rover * 0.1;
-    y_servo_angle = constrain(y_servo_angle, 0, 180);
-  }
-  cam_servo_rotate(SERVO_CHANNEL_x, x_servo_angle);
-  cam_servo_rotate(SERVO_CHANNEL_y, y_servo_angle);
+  // if(abs(R_joystick_x_rover) >= 20){
+  //   x_servo_angle += R_joystick_x_rover * 0.1;
+  //   x_servo_angle = constrain(x_servo_angle, 0, 180);
+  // }
+  // if(abs(R_joystick_y_rover) >= 20){
+  //   y_servo_angle += R_joystick_y_rover * 0.1;
+  //   y_servo_angle = constrain(y_servo_angle, 0, 180);
+  // }
+  // cam_servo_rotate(SERVO_CHANNEL_x, x_servo_angle);
+  // cam_servo_rotate(SERVO_CHANNEL_y, y_servo_angle);
 
   move(x_target, y_target, z_target, theta_target);
 
