@@ -3,8 +3,8 @@
 
 #include <Cytron.h>
 #include <Encoder.h>
-// #include <Wire.h>
-// #include <Adafruit_PWMServoDriver.h>
+#include <Wire.h>
+#include <Adafruit_PWMServoDriver.h>
 
 #include <rcl/rcl.h>
 #include <rclc/rclc.h>
@@ -15,12 +15,12 @@
 #include <std_msgs/msg/int64_multi_array.h>
 #include <rmw/qos_profiles.h>
 
-// Adafruit_PWMServoDriver pca = Adafruit_PWMServoDriver(0x40, Wire2);
+Adafruit_PWMServoDriver pca = Adafruit_PWMServoDriver(0x40, Wire2);
 
-// #define SERVO_CHANNEL_x 1
-// #define SERVO_CHANNEL_y 2
-// #define SERVO_MIN 150
-// #define SERVO_MAX 600
+#define SERVO_CHANNEL_x 1
+#define SERVO_CHANNEL_y 2
+#define SERVO_MIN 150
+#define SERVO_MAX 600
 
 #if !defined(MICRO_ROS_TRANSPORT_ARDUINO_SERIAL)
 #error This example is only avaliable for Arduino framework with serial transport.
@@ -41,7 +41,7 @@ Cytron motorGrip(28, 29, 0);
 // #define slave_addr 9
 
 rcl_timer_t encoder_readings_timer;
-rcl_timer_t comm_check_timer;
+rcl_timer_t comm_chk_timer;
 
 rcl_subscription_t subscription;
 rcl_subscription_t subscription_arm;
@@ -163,6 +163,7 @@ bool moving = false;
 //pwm for turret, roll, grip motor
 float pwm, pwm2, pwm3;
 
+long start_time = 0;
 int count = 4;
 
 void enc_pub_callback(rcl_timer_t * timer, int64_t last_call_time){
@@ -175,6 +176,30 @@ void enc_pub_callback(rcl_timer_t * timer, int64_t last_call_time){
     encoder_data.data.data[4] = 0;
     encoder_data.data.data[5] = 0;
     RCSOFTCHECK(rcl_publish(&encoder_pub_, &encoder_data, NULL));
+  }
+}
+
+void comm_callback(rcl_timer_t * timer, int64_t last_call_time){
+  RCLC_UNUSED(last_call_time);
+  if (timer != NULL) {
+    count--;
+  }
+}
+
+void reset_callback(const void * msgin){
+
+  if (msgin == NULL) {
+    return;
+  }
+  
+  const std_msgs__msg__Bool * msg = (const std_msgs__msg__Bool *) msgin;
+
+  if(msg->data){
+    home();
+    turret.write(0);
+    elbow.write(0);
+    wrist.write(0);
+    shoulder.write(0);
   }
 }
 
@@ -205,14 +230,18 @@ void subscription_callback_arm(const void * msgin)
     left = msg->ps4_data_buttons[16];
     
     // motorRoll.rotate(50);
-    // digitalWrite(13, HIGH);
+    digitalWrite(13, HIGH);
 }
 
-void comm_check_callback(rcl_timer_t * timer, int64_t last_call_time){
-  RCLC_UNUSED(last_call_time);
-  if (timer != NULL) {
-    count--;
+void comm_check_callback(const void * msgin){
+
+  if (msgin == NULL) {
+    return;
   }
+
+  const std_msgs__msg__Bool* msg = (const std_msgs__msg__Bool*) msgin;
+
+  count = 4;
 }
 
 void subscription_callback_rover(const void * msgin)
@@ -240,10 +269,10 @@ void subscription_callback_rover(const void * msgin)
   // digitalWrite(13, HIGH);
 }
 
-// void cam_servo_rotate(int channel, int angle) {
-//   int pwm_servo = map(angle, 0, 180, SERVO_MIN, SERVO_MAX);
-//   pca.setPWM(channel, 0, pwm_servo);
-// }
+void cam_servo_rotate(int channel, int angle) {
+  int pwm_servo = map(angle, 0, 180, SERVO_MIN, SERVO_MAX);
+  pca.setPWM(channel, 0, pwm_servo);
+}
 
 void getAngles() {
 
@@ -406,23 +435,6 @@ void home() {
 
 }
 
-void reset_callback(const void * msgin){
-
-  if (msgin == NULL) {
-    return;
-  }
-  
-  const std_msgs__msg__Bool * msg = (const std_msgs__msg__Bool *) msgin;
-
-  if(msg->data){
-    home();
-    turret.write(0);
-    elbow.write(0);
-    wrist.write(0);
-    shoulder.write(0);
-  }
-}
-
 void init_microros()
 {
   set_microros_serial_transports(Serial);
@@ -462,6 +474,12 @@ void init_microros()
     &qos_profile));
 
   RCCHECK(rclc_subscription_init_default(
+    &comm_check_sub_,
+    &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool),
+    "/comm_check"));
+
+  RCCHECK(rclc_subscription_init_default(
     &reset_sub_,
     &node,
     ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool),
@@ -482,14 +500,14 @@ void init_microros()
     enc_pub_callback));
 
   // create timer,
-  const unsigned int timer_timeout = 1000;
+  const unsigned int comm_check_timer = 1000;
   RCCHECK(rclc_timer_init_default(
-    &comm_check_timer,
+    &comm_chk_timer,
     &support,
-    RCL_MS_TO_NS(timer_timeout),
-    comm_check_callback));
+    RCL_MS_TO_NS(comm_check_timer),
+    comm_callback));
 
-  RCCHECK(rclc_executor_init(&executor, &support.context, 5, &allocator));
+  RCCHECK(rclc_executor_init(&executor, &support.context, 6, &allocator));
 
   RCCHECK(rclc_executor_add_timer(
     &executor, 
@@ -497,13 +515,20 @@ void init_microros()
 
   RCCHECK(rclc_executor_add_timer(
     &executor, 
-    &comm_check_timer));
+    &comm_chk_timer));
   
   RCCHECK(rclc_executor_add_subscription(
     &executor,
     &subscription_arm,
     &ps4_msg,
     &subscription_callback_arm,
+    ON_NEW_DATA));
+
+  RCCHECK(rclc_executor_add_subscription(
+    &executor,
+    &comm_check_sub_,
+    &check_,
+    &comm_check_callback,
     ON_NEW_DATA));
 
   RCCHECK(rclc_executor_add_subscription(
@@ -537,9 +562,9 @@ void destroy_microros()
 
 void setup() {
 
-  delay(1000);
+  delay(2000);
   Serial.begin(115200);
-  delay(1000);
+  delay(2000);
 
 
   init_microros();
@@ -551,20 +576,23 @@ void setup() {
   elbow.write(0);
   wrist.write(0);
   shoulder.write(0);
+  
+  start_time = millis();
 
   // digitalWrite(13, HIGH);
 }
 
 void loop() {
-  
+
   if (count == 0) {
     destroy_microros();
     init_microros();
-    
+    start_time = millis();
+
     L_joystick_x = 0;
     L_joystick_y = 0;
     R_joystick_y = 0;
-    
+
     cross = 0;
     circle = 0;
     triangle = 0;
@@ -574,9 +602,6 @@ void loop() {
     right = 0;
     down = 0;
     left = 0;
-    digitalWrite(13, HIGH);
-  } else {
-    digitalWrite(13, LOW);
   }
 
   if (L_joystick_x > 20 || L_joystick_x < -20) {
@@ -620,16 +645,16 @@ void loop() {
     motorGrip.rotate(0);
   }
 
-  // if(abs(R_joystick_x_rover) >= 20){
-  //   x_servo_angle += R_joystick_x_rover * 0.1;
-  //   x_servo_angle = constrain(x_servo_angle, 0, 180);
-  // }
-  // if(abs(R_joystick_y_rover) >= 20){
-  //   y_servo_angle += R_joystick_y_rover * 0.1;
-  //   y_servo_angle = constrain(y_servo_angle, 0, 180);
-  // }
-  // cam_servo_rotate(SERVO_CHANNEL_x, x_servo_angle);
-  // cam_servo_rotate(SERVO_CHANNEL_y, y_servo_angle);
+  if(abs(R_joystick_x_rover) >= 20){
+    x_servo_angle += R_joystick_x_rover * 0.1;
+    x_servo_angle = constrain(x_servo_angle, 0, 180);
+  }
+  if(abs(R_joystick_y_rover) >= 20){
+    y_servo_angle += R_joystick_y_rover * 0.1;
+    y_servo_angle = constrain(y_servo_angle, 0, 180);
+  }
+  cam_servo_rotate(SERVO_CHANNEL_x, x_servo_angle);
+  cam_servo_rotate(SERVO_CHANNEL_y, y_servo_angle);
 
   move(x_target, y_target, z_target, theta_target);
 
