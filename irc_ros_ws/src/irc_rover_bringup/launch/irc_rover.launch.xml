@@ -17,10 +17,10 @@
         <param from="$(var joy_params)" />
     </node>
 
-    <node pkg="teleop_twist_joy" exec="teleop_node" name="teleop_node" output="screen">
+    <!-- <node pkg="teleop_twist_joy" exec="teleop_node" name="teleop_node" output="screen">
         <param from="$(var joy_params)" />
         <remap from="/cmd_vel" to="/unstamped_vel" />
-    </node>
+    </node> -->
 
     <node pkg="rover_base_description" exec="twist_to_stamped" name="twist_to_stamped" output="screen" />
 
