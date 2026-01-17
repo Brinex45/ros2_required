@@ -28,8 +28,8 @@ int Right_middle_dir_pin=23;
 int Left_middle_motor_pin=5;
 int Left_middle_dir_pin=4;
 
-int Right_back_motor_pin=36;
-int Right_back_dir_pin=37;
+int Right_back_motor_pin=8;
+int Right_back_dir_pin=9;
 
 int Left_back_motor_pin=7;
 int Left_back_dir_pin=6;
