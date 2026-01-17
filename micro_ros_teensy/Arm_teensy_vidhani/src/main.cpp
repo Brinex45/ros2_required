@@ -3,6 +3,8 @@
 
 #include <Cytron.h>
 #include <Encoder.h>
+#include <Wire.h>
+#include <Adafruit_PWMServoDriver.h>
 
 #include <rcl/rcl.h>
 #include <rclc/rclc.h>
@@ -12,6 +14,12 @@
 #include <std_msgs/msg/bool.h>
 #include <rmw/qos_profiles.h>
 
+Adafruit_PWMServoDriver pca = Adafruit_PWMServoDriver(0x40, Wire2);
+
+#define SERVO_CHANNEL_x 1
+#define SERVO_CHANNEL_y 2
+#define SERVO_MIN 150
+#define SERVO_MAX 600
 
 #if !defined(MICRO_ROS_TRANSPORT_ARDUINO_SERIAL)
 #error This example is only avaliable for Arduino framework with serial transport.
@@ -31,8 +39,8 @@ Cytron motorGrip(28, 29, 0);
 
 // #define slave_addr 9
 
-rcl_subscription_t subscription;
-rcl_subscription_t subscription_reset;
+rcl_subscription_t subscription_arm;
+rcl_subscription_t subscription_rover;
 irc_interfaces__msg__Ps4 ps4_msg;
 std_msgs__msg__Bool reset_msg;
 
@@ -49,6 +57,9 @@ void error_loop() {
   // digitalWrite(13, HIGH);
   delay(1000);
 }
+
+int x_servo_angle = 90;
+int y_servo_angle = 90;
 
 // //used in IK calculation
 float a1;
@@ -93,6 +104,9 @@ double L_joystick_x;
 double L_joystick_y;
 double R_joystick_x;
 double R_joystick_y;
+
+double R_joystick_x_rover;
+double R_joystick_y_rover;
 
 bool right;
 bool down;
@@ -140,47 +154,60 @@ float pwm, pwm2, pwm3;
 
 long start_time = 0;
 
-void subscription_callback(const void * msgin)
+void subscription_callback_arm(const void * msgin)
 {
   if (msgin == NULL) {
     return;
   }
-  
+
   const irc_interfaces__msg__Ps4 * msg = (const irc_interfaces__msg__Ps4 *) msgin;
-  
-  // for (size_t i = 0; i < 6; i++) {
-    //   joint_pwm.data.data[i] = msg->data.data[i];
-    // }
-    
+
     L_joystick_x = double(msg->ps4_data_analog[0]);
     L_joystick_y = double(msg->ps4_data_analog[1]);
     R_joystick_y = double(msg->ps4_data_analog[4]);
 
     cross = msg->ps4_data_buttons[0];
-    circle = msg->ps4_data_buttons[1];  
+    circle = msg->ps4_data_buttons[1];
     triangle = msg->ps4_data_buttons[2];
     square = msg->ps4_data_buttons[3];
-    
+
     up = msg->ps4_data_buttons[13];
     right = msg->ps4_data_buttons[15];
     down = msg->ps4_data_buttons[14];
     left = msg->ps4_data_buttons[16];
-    
-    // motorRoll.rotate(50);
-    digitalWrite(13, HIGH);
+
+    // digitalWrite(13, HIGH);
 }
 
-void reset(const void * msgin)
+void subscription_callback_rover(const void * msgin)
 {
   if (msgin == NULL) {
     return;
   }
 
-  const std_msgs__msg__Bool * msg = (const std_msgs__msg__Bool *) msgin;
-    
-    bool reset_button = msg->data;
+  const irc_interfaces__msg__Ps4 * msg = (const irc_interfaces__msg__Ps4 *) msgin;
 
-    start_time = millis();
+    // L_joystick_x = double(msg->ps4_data_analog[0]);
+    // L_joystick_y = double(msg->ps4_data_analog[1]);
+    R_joystick_x_rover = double(msg->ps4_data_analog[3]);
+    R_joystick_y_rover = double(msg->ps4_data_analog[4]);
+
+    // cross = msg->ps4_data_buttons[0];
+    // circle = msg->ps4_data_buttons[1];
+    // triangle = msg->ps4_data_buttons[2];
+    // square = msg->ps4_data_buttons[3];
+    
+    // up = msg->ps4_data_buttons[13];
+    // right = msg->ps4_data_buttons[15];
+    // down = msg->ps4_data_buttons[14];
+    // left = msg->ps4_data_buttons[16];
+    
+    // digitalWrite(13, HIGH);
+}
+
+void cam_servo_rotate(int channel, int angle) {
+  int pwm_servo = map(angle, 0, 180, SERVO_MIN, SERVO_MAX);
+  pca.setPWM(channel, 0, pwm_servo);
 }
 
 void getAngles() {
@@ -375,32 +402,32 @@ void setup() {
   RCCHECK(rclc_node_init_default(&node, "micro_ros_arm", "", &support));
 
   RCCHECK(rclc_subscription_init(
-    &subscription,
+    &subscription_arm,
     &node,
     ROSIDL_GET_MSG_TYPE_SUPPORT(irc_interfaces, msg, Ps4),
     "/ps4_data_arm",
     &qos_profile));
 
   RCCHECK(rclc_subscription_init(
-    &subscription_reset,
+    &subscription_rover,
     &node,
-    ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool),
-    "/reset_check",
+    ROSIDL_GET_MSG_TYPE_SUPPORT(irc_interfaces, msg, Ps4),
+    "/ps4_data_rover",
     &qos_profile));
 
   RCCHECK(rclc_executor_init(&executor, &support.context, 2, &allocator));
   // RCCHECK(rclc_executor_add_timer(&executor, &timer));
   RCCHECK(rclc_executor_add_subscription(
     &executor,
-    &subscription,
+    &subscription_arm,
     &ps4_msg,
-    &subscription_callback,
+    &subscription_callback_arm,
     ON_NEW_DATA));
   RCCHECK(rclc_executor_add_subscription(
     &executor,
-    &subscription_reset,
-    &reset_msg,
-    &reset,
+    &subscription_rover,
+    &ps4_msg,
+    &subscription_callback_rover,
     ON_NEW_DATA));
 
   pinMode(13, OUTPUT);
@@ -417,11 +444,6 @@ void setup() {
 
 void loop() {
 
-  // if (millis() - start_time > 3000) {
-  //   setting();
-  // }
-  // get_value();
-
   if (L_joystick_x > 20 || L_joystick_x < -20) {
     x_target += L_joystick_x * k;
   }
@@ -435,101 +457,44 @@ void loop() {
   }
 
   if (square || circle) {
-
     manual_turret = true;
     if (square) pwm = 70;
     if (circle) pwm = -70;
     motorTurret.rotate(pwm);
-    
+  }else {
+    motorTurret.rotate(0);
   }
 
-  else {
-  
-      motorTurret.rotate(0);
-    }
-
   if (left || right) {
-
     if (right) pwm2 = 30;
     if (left) pwm2 = -30;
     motorRoll.rotate(pwm2);
-    
+  }else {
+    motorRoll.rotate(0);
   }
 
-  else {
-  
-      motorRoll.rotate(0);
-    }
-
- if (up || down) {
-
+  if (up || down) {
     if (up) pwm3 = 50;
     if (down) pwm3 = -50;
     motorGrip.rotate(pwm3);
     
+  }else {
+    motorGrip.rotate(0);
   }
 
-  else {
+  if(abs(R_joystick_x_rover) >= 20){
+    x_servo_angle += R_joystick_x_rover * 0.1;
+    x_servo_angle = constrain(x_servo_angle, 0, 180);
+  }
+  if(abs(R_joystick_y_rover) >= 20){
+    y_servo_angle += R_joystick_y_rover * 0.1;
+    y_servo_angle = constrain(y_servo_angle, 0, 180);
+  }
   
-      motorGrip.rotate(0);
-    }
+  cam_servo_rotate(SERVO_CHANNEL_x, x_servo_angle);
+  cam_servo_rotate(SERVO_CHANNEL_y, y_servo_angle);
 
-  // Serial.print("X Target = ");
-  // Serial.print(x_target);
-  // Serial.print("       ");
-  // Serial.print("Y Target = ");
-  // Serial.print(y_target);
-  // Serial.print("theta ");
-  // Serial.print(theta_target);
-  // Serial.print("       ");
-  // Serial.print("wrist ");
-  // Serial.print(Wrist);
-  // Serial.print("   ");
-  // Serial.print("shoulder ");
-  // Serial.print(Shoulder);
-  // Serial.print("   ");
-  // Serial.print("elbow ");
-  // Serial.print(Elbow);
-  // Serial.print("   ");
-  // Serial.print("Turret ");
-  // Serial.print(Turret);
-  // Serial.print("   ");
-  // Serial.print("circle ");
-  // Serial.println(circle);
-
-  /*Serial.print(z_target);
-  Serial.print("       ");
-  Serial.print("theta Target = ");
-  Serial.print(theta_target);
-   Serial.print("       ");
-  Serial.print("servo = ");
-  Serial.print(servo_angle);
-   Serial.print("       ");
-   Serial.print("roll pwm = ");
-  Serial.print(pwm2);
-   Serial.print("       ");
-  Serial.print("turret pwm = ");
-  Serial.print(pwm);
-  Serial.print("       ");
-   Serial.print("omegi = ");
-  Serial.print(omegi);
-  Serial.println("               ");*/
-
-//  if(x_target == prev_x_target && y_target == prev_y_target && z_target == prev_z_target && theta_target == prev_theta_target){
-//   moving = false;
-//  }
-
-//  else{
-//   moving = true;
-//    }
-
-//  if(moving){
-//   move(x_target, y_target, z_target, theta_target);
-// }
-
- move(x_target, y_target, z_target, theta_target);
-  // moveShoulder(70);
-  // moveElbow(110);
+  move(x_target, y_target, z_target, theta_target);
 
   prev_x_target = x_target;
   prev_y_target = y_target;
