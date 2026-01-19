@@ -4,23 +4,27 @@
 #include <Cytron.h>
 #include <Encoder.h>
 #include <Wire.h>
-// #include <Adafruit_PWMServoDriver.h>
+#include <Adafruit_PWMServoDriver.h>
 
+#include <stdio.h>
 #include <rcl/rcl.h>
 #include <rclc/rclc.h>
 #include <rclc/executor.h>
+#include <rcl/error_handling.h>
+#include <rmw_microros/rmw_microros.h>
 
 #include <irc_interfaces/msg/ps4.h>
 #include <std_msgs/msg/bool.h>
 #include <std_msgs/msg/int64_multi_array.h>
 #include <rmw/qos_profiles.h>
 
-// Adafruit_PWMServoDriver pca = Adafruit_PWMServoDriver(0x40, Wire2);
+Adafruit_PWMServoDriver pca = Adafruit_PWMServoDriver(0x40, Wire2);
 
-// #define SERVO_CHANNEL_x 1
-// #define SERVO_CHANNEL_y 2
-// #define SERVO_MIN 150
-// #define SERVO_MAX 600
+#define ServoFreq 50
+#define SERVO_CHANNEL_x 3
+#define SERVO_CHANNEL_y 7
+#define SERVO_MIN 150
+#define SERVO_MAX 600
 
 #if !defined(MICRO_ROS_TRANSPORT_ARDUINO_SERIAL)
 #error This example is only avaliable for Arduino framework with serial transport.
@@ -39,15 +43,12 @@ Cytron motorRoll( 8, 9, 0);
 Cytron motorGrip(28, 29, 0);
 
 // #define slave_addr 9
+int64_t encoder_buf[6];
 
 rcl_timer_t encoder_readings_timer;
-rcl_timer_t comm_chk_timer;
 
-rcl_subscription_t subscription;
 rcl_subscription_t subscription_arm;
 rcl_subscription_t subscription_rover;
-rcl_subscription_t comm_check_sub_;
-rcl_subscription_t reset_sub_;
 
 rcl_publisher_t encoder_pub_;
 
@@ -55,15 +56,28 @@ irc_interfaces__msg__Ps4 ps4_msg;
 std_msgs__msg__Bool reset;
 std_msgs__msg__Bool check_;
 std_msgs__msg__Int64MultiArray encoder_data;
-int64_t encoder_buf[6];
 
+rcl_timer_t timer;
 rclc_executor_t executor;
 rclc_support_t support;
 rcl_allocator_t allocator;
 rcl_node_t node;
+bool micro_ros_init_successful;
+
+enum states {
+  WAITING_AGENT,
+  AGENT_AVAILABLE,
+  AGENT_CONNECTED,
+  AGENT_DISCONNECTED
+} state;
 
 #define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){error_loop();}}
 #define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){}}
+#define EXECUTE_EVERY_N_MS(MS, X)  do { \
+  static volatile int64_t init = -1; \
+  if (init == -1) { init = uxr_millis();} \
+  if (uxr_millis() - init > MS) { X; init = uxr_millis();} \
+} while (0)\
 
 void error_loop() {
   // digitalWrite(13, HIGH);
@@ -166,10 +180,9 @@ float pwm, pwm2, pwm3;
 
 long start_time = 0;
 int count = 4;
-bool flag = false;
 
 void enc_pub_callback(rcl_timer_t * timer, int64_t last_call_time){
-  RCLC_UNUSED(last_call_time);
+  (void)last_call_time;
   if (timer != NULL) {
     encoder_data.data.data[0] = elbow.read();
     encoder_data.data.data[1] = shoulder.read();
@@ -178,13 +191,6 @@ void enc_pub_callback(rcl_timer_t * timer, int64_t last_call_time){
     encoder_data.data.data[4] = 0;
     encoder_data.data.data[5] = 0;
     RCSOFTCHECK(rcl_publish(&encoder_pub_, &encoder_data, NULL));
-  }
-}
-
-void comm_callback(rcl_timer_t * timer, int64_t last_call_time){
-  RCLC_UNUSED(last_call_time);
-  if (timer != NULL) {
-    count--;
   }
 }
 
@@ -215,18 +221,7 @@ void subscription_callback_arm(const void * msgin)
     left = msg->ps4_data_buttons[16];
     
     // motorRoll.rotate(50);
-    digitalWrite(13, HIGH);
-}
-
-void comm_check_callback(const void * msgin){
-
-  if (msgin == NULL) {
-    return;
-  }
-
-  const std_msgs__msg__Bool* msg = (const std_msgs__msg__Bool*) msgin;
-
-  count = 4;
+    // digitalWrite(13, HIGH);
 }
 
 void subscription_callback_rover(const void * msgin)
@@ -242,22 +237,14 @@ void subscription_callback_rover(const void * msgin)
   R_joystick_x_rover = double(msg->ps4_data_analog[3]);
   R_joystick_y_rover = double(msg->ps4_data_analog[4]);
 
-  // cross = msg->ps4_data_buttons[0];
-  // circle = msg->ps4_data_buttons[1];
-  // triangle = msg->ps4_data_buttons[2];
-  // square = msg->ps4_data_buttons[3];
-  // up = msg->ps4_data_buttons[13];
-  // right = msg->ps4_data_buttons[15];
-  // down = msg->ps4_data_buttons[14];
-  // left = msg->ps4_data_buttons[16];
   
   // digitalWrite(13, HIGH);
 }
 
-// void cam_servo_rotate(int channel, int angle) {
-//   int pwm_servo = map(angle, 0, 180, SERVO_MIN, SERVO_MAX);
-//   pca.setPWM(channel, 0, pwm_servo);
-// }
+void cam_servo_rotate(int channel, int angle) {
+  int pwm_servo = map(angle, 0, 180, SERVO_MIN, SERVO_MAX);
+  pca.setPWM(channel, 0, pwm_servo);
+}
 
 void getAngles() {
 
@@ -420,156 +407,107 @@ void home() {
 
 }
 
-void reset_callback(const void * msgin){
+// void reset_callback(const void * msgin){
 
-  if (msgin == NULL) {
-    return;
-  }
+//   if (msgin == NULL) {
+//     return;
+//   }
   
-  const std_msgs__msg__Bool * msg = (const std_msgs__msg__Bool *) msgin;
+//   const std_msgs__msg__Bool * msg = (const std_msgs__msg__Bool *) msgin;
 
-  if(msg->data){
-    home();
-    turret.write(0);
-    elbow.write(0);
-    wrist.write(0);
-    shoulder.write(0);
-  }
-}
+//   if(msg->data){
+//     home();
+//     turret.write(0);
+//     elbow.write(0);
+//     wrist.write(0);
+//     shoulder.write(0);
+//   }
+// }
 
-void init_microros()
+bool create_entities()
 {
-  set_microros_serial_transports(Serial);
 
   rmw_qos_profile_t qos_profile = rmw_qos_profile_default;
   qos_profile.reliability = RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
+  
+  allocator = rcl_get_default_allocator();
 
-  // Wait for agent successful ping for 5 seconds.
-  const int timeout_ms = 1000;
-  const uint8_t attempts = 5;
+  RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
 
-  rcl_ret_t ret = rmw_uros_ping_agent(timeout_ms, attempts);
+  RCCHECK(rclc_node_init_default(&node, "micro_ros_arm", "", &support));
 
-  if (ret == RMW_RET_OK)
-  {
-    allocator = rcl_get_default_allocator();
+  RCCHECK(rclc_subscription_init(
+    &subscription_arm,
+    &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(irc_interfaces, msg, Ps4),
+    "/ps4_data_arm",
+    &qos_profile));
 
-    RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
-    RCCHECK(rclc_node_init_default(&node, "micro_ros_arm", "", &support));
+  RCCHECK(rclc_subscription_init(
+    &subscription_rover,
+    &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(irc_interfaces, msg, Ps4),
+    "/ps4_data_rover",
+    &qos_profile));
 
-    RCCHECK(rclc_subscription_init(
-      &subscription_arm,
-      &node,
-      ROSIDL_GET_MSG_TYPE_SUPPORT(irc_interfaces, msg, Ps4),
-      "/ps4_data_arm",
-      &qos_profile));
+  RCCHECK(rclc_publisher_init_default(
+    &encoder_pub_,
+    &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int64MultiArray),
+    "/arm_encoders"));
 
-    RCCHECK(rclc_subscription_init(
-      &subscription_rover,
-      &node,
-      ROSIDL_GET_MSG_TYPE_SUPPORT(irc_interfaces, msg, Ps4),
-      "/ps4_data_rover",
-      &qos_profile));
+  // create timer,
+  const unsigned int timer_timeout = 10;
+  RCCHECK(rclc_timer_init_default(
+    &encoder_readings_timer,
+    &support,
+    RCL_MS_TO_NS(timer_timeout),
+    enc_pub_callback));
 
-    RCCHECK(rclc_subscription_init_default(
-      &comm_check_sub_,
-      &node,
-      ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool),
-      "/comm_check"));
+  executor = rclc_executor_get_zero_initialized_executor();
+  RCCHECK(rclc_executor_init(&executor, &support.context, 3, &allocator));
 
-    RCCHECK(rclc_subscription_init_default(
-      &reset_sub_,
-      &node,
-      ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool),
-      "/reset_arm"));
+  RCCHECK(rclc_executor_add_timer(
+    &executor, 
+    &encoder_readings_timer));
+  
+  RCCHECK(rclc_executor_add_subscription(
+    &executor,
+    &subscription_arm,
+    &ps4_msg,
+    &subscription_callback_arm,
+    ON_NEW_DATA));
 
-    RCCHECK(rclc_publisher_init_default(
-      &encoder_pub_,
-      &node,
-      ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int64MultiArray),
-      "/arm_encoder"));
+  RCCHECK(rclc_executor_add_subscription(
+    &executor,
+    &subscription_rover,
+    &ps4_msg,
+    &subscription_callback_rover,
+    ON_NEW_DATA));
 
-    // create timer,
-    const unsigned int timer_timeout = 10;
-    RCCHECK(rclc_timer_init_default(
-      &encoder_readings_timer,
-      &support,
-      RCL_MS_TO_NS(timer_timeout),
-      enc_pub_callback));
+  encoder_data.data.size = 6;
+  encoder_data.data.capacity = 6;
+  encoder_data.data.data = encoder_buf;
 
-    // create timer,
-    const unsigned int comm_check_timer = 1000;
-    RCCHECK(rclc_timer_init_default(
-      &comm_chk_timer,
-      &support,
-      RCL_MS_TO_NS(comm_check_timer),
-      comm_callback));
-
-    RCCHECK(rclc_executor_init(&executor, &support.context, 6, &allocator));
-
-    RCCHECK(rclc_executor_add_timer(
-      &executor, 
-      &encoder_readings_timer));
-
-    RCCHECK(rclc_executor_add_timer(
-      &executor, 
-      &comm_chk_timer));
-    
-    RCCHECK(rclc_executor_add_subscription(
-      &executor,
-      &subscription_arm,
-      &ps4_msg,
-      &subscription_callback_arm,
-      ON_NEW_DATA));
-
-    RCCHECK(rclc_executor_add_subscription(
-      &executor,
-      &comm_check_sub_,
-      &check_,
-      &comm_check_callback,
-      ON_NEW_DATA));
-
-    RCCHECK(rclc_executor_add_subscription(
-      &executor,
-      &subscription_rover,
-      &ps4_msg,
-      &subscription_callback_rover,
-      ON_NEW_DATA));
-
-    RCCHECK(rclc_executor_add_subscription(
-      &executor,
-      &reset_sub_,
-      &reset,
-      &reset_callback,
-      ON_NEW_DATA));
-
-    encoder_data.data.data = encoder_buf;
-    encoder_data.data.size = 6;
-    encoder_data.data.capacity = 6;
-    flag = true;
-  }
+  return true;
 
 }
 
-void destroy_microros()
+void destroy_entities()
 {
-  rcl_timer_fini(&encoder_readings_timer);
-  rcl_timer_fini(&comm_chk_timer);
+  rmw_context_t * rmw_context = rcl_context_get_rmw_context(&support.context);
+  (void) rmw_uros_set_context_entity_destroy_session_timeout(rmw_context, 0);
 
+  // rcl_subscription_fini(&subscription, &node);
   rcl_subscription_fini(&subscription_arm, &node);
-  rcl_subscription_fini(&comm_check_sub_, &node);
   rcl_subscription_fini(&subscription_rover, &node);
-  rcl_subscription_fini(&reset_sub_, &node);
+  rcl_publisher_fini(&encoder_pub_, &node);
+
+  rcl_timer_fini(&encoder_readings_timer);
 
   rclc_executor_fini(&executor);
   rcl_node_fini(&node);
   rclc_support_fini(&support);
-  if (encoder_data.data.data != NULL)
-  {
-    free(encoder_data.data.data);
-    encoder_data.data.data = NULL;
-  }
-  flag = false;
 }
 
 void setup() {
@@ -578,10 +516,16 @@ void setup() {
   Serial.begin(115200);
   delay(2000);
 
+  set_microros_serial_transports(Serial);
 
-  init_microros();
+  pca.begin();
+  pca.setPWMFreq(ServoFreq);
 
+  // create_entities();
   pinMode(13, OUTPUT);
+
+  
+  state = WAITING_AGENT;
   
   home();
   turret.write(0);
@@ -590,88 +534,92 @@ void setup() {
   shoulder.write(0);
   
   start_time = millis();
-
+  
   // digitalWrite(13, HIGH);
 }
 
 void loop() {
-
-  if (count == 0) {
-    if(flag == true){
-      destroy_microros();
+  
+  switch (state) {
+    case WAITING_AGENT:
+    EXECUTE_EVERY_N_MS(500, state = (RMW_RET_OK == rmw_uros_ping_agent(100, 1)) ? AGENT_AVAILABLE : WAITING_AGENT;);
+    break;
+    case AGENT_AVAILABLE:
+    state = (true == create_entities()) ? AGENT_CONNECTED : WAITING_AGENT;
+    if (state == WAITING_AGENT) {
+        destroy_entities();
+      };
+      break;
+      case AGENT_CONNECTED:
+      EXECUTE_EVERY_N_MS(200, state = (RMW_RET_OK == rmw_uros_ping_agent(100, 1)) ? AGENT_CONNECTED : AGENT_DISCONNECTED;);
+      if (state == AGENT_CONNECTED) {
+        rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100));
+      }
+      break;
+      case AGENT_DISCONNECTED:
+      destroy_entities();
+      state = WAITING_AGENT;
+      break;
+      default:
+      break;
     }
-    // init_microros();
-    start_time = millis();
-
-    L_joystick_x = 0;
-    L_joystick_y = 0;
-    R_joystick_y = 0;
-
-    cross = 0;
-    circle = 0;
-    triangle = 0;
-    square = 0;
     
-    up = 0;
-    right = 0;
-    down = 0;
-    left = 0;
-    count = 3;
-  }
-
-  if (L_joystick_x > 20 || L_joystick_x < -20) {
-    x_target += L_joystick_x * k;
-  }
-
-  if (L_joystick_y > 20 || L_joystick_y < -20) {
-    y_target += L_joystick_y * k;
-  }
-
-  if (R_joystick_y > 20 || R_joystick_y < -20) {
-    theta_target += R_joystick_y * k;
-  }
-
-  if (square || circle) {
-    manual_turret = true;
-    if (square) pwm = 70;
-    if (circle) pwm = -70;
-    motorTurret.rotate(pwm);
-  }
-  else {
-    motorTurret.rotate(0);
-  }
-
-  if (left || right) {
-    if (right) pwm2 = 30;
-    if (left) pwm2 = -30;
-    motorRoll.rotate(pwm2);
-  }
-
-  else {
-    motorRoll.rotate(0);
-  }
-
-  if (up || down) {
-    if (up) pwm3 = 50;
-    if (down) pwm3 = -50;
-    motorGrip.rotate(pwm3);
-  }
-  else {
-    motorGrip.rotate(0);
-  }
-
-  // if(abs(R_joystick_x_rover) >= 20){
-  //   x_servo_angle += R_joystick_x_rover * 0.1;
-  //   x_servo_angle = constrain(x_servo_angle, 0, 180);
-  // }
-  // if(abs(R_joystick_y_rover) >= 20){
-  //   y_servo_angle += R_joystick_y_rover * 0.1;
-  //   y_servo_angle = constrain(y_servo_angle, 0, 180);
-  // }
-  // cam_servo_rotate(SERVO_CHANNEL_x, x_servo_angle);
-  // cam_servo_rotate(SERVO_CHANNEL_y, y_servo_angle);
-
-  move(x_target, y_target, z_target, theta_target);
+    
+    if (L_joystick_x > 20 || L_joystick_x < -20) {
+      x_target += L_joystick_x * k;
+    }
+    
+    if (L_joystick_y > 20 || L_joystick_y < -20) {
+      y_target += L_joystick_y * k;
+    }
+    
+    if (R_joystick_y > 20 || R_joystick_y < -20) {
+      theta_target += R_joystick_y * k;
+    }
+    
+    if (square || circle) {
+      manual_turret = true;
+      if (square) pwm = 70;
+      if (circle) pwm = -70;
+      motorTurret.rotate(pwm);
+    }
+    else {
+      motorTurret.rotate(0);
+    }
+    
+    if (left || right) {
+      if (right) pwm2 = 30;
+      if (left) pwm2 = -30;
+      motorRoll.rotate(pwm2);
+    }
+    
+    else {
+      motorRoll.rotate(0);
+    }
+    
+    if (up || down) {
+      if (up) pwm3 = 50;
+      if (down) pwm3 = -50;
+      motorGrip.rotate(pwm3);
+    }
+    else {
+      motorGrip.rotate(0);
+    }
+    
+    if(abs(R_joystick_x_rover) >= 20){
+      digitalWrite(13, HIGH);
+      x_servo_angle += R_joystick_x_rover * 0.1;
+      x_servo_angle = constrain(x_servo_angle, 0, 180);
+    }
+    if(abs(R_joystick_y_rover) >= 20){
+      y_servo_angle += R_joystick_y_rover * 0.1;
+      y_servo_angle = constrain(y_servo_angle, 0, 180);
+    }
+    cam_servo_rotate(SERVO_CHANNEL_x, x_servo_angle);
+    cam_servo_rotate(SERVO_CHANNEL_y, y_servo_angle);
+    
+    move(x_target, y_target, z_target, theta_target);
+    // digitalWrite(13, HIGH);
 
   prev_x_target = x_target;
   prev_y_target = y_target;
@@ -681,5 +629,5 @@ void loop() {
   
   // delay(10);
 
-  RCSOFTCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(10)));
+  // RCSOFTCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(10)));
 }
