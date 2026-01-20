@@ -21,8 +21,8 @@
 Adafruit_PWMServoDriver pca = Adafruit_PWMServoDriver(0x40, Wire2);
 
 #define ServoFreq 50
-#define SERVO_CHANNEL_x 3
-#define SERVO_CHANNEL_y 7
+#define SERVO_CHANNEL_x 6
+#define SERVO_CHANNEL_y 2
 #define SERVO_MIN 150
 #define SERVO_MAX 600
 
@@ -84,8 +84,8 @@ void error_loop() {
   delay(1000);
 }
 
-int x_servo_angle = 90;
-int y_servo_angle = 90;
+float x_servo_angle = 90;
+float y_servo_angle = 90;
 
 // //used in IK calculation
 float a1;
@@ -178,7 +178,8 @@ bool moving = false;
 //pwm for turret, roll, grip motor
 float pwm, pwm2, pwm3;
 
-long start_time = 0;
+long start_time_x = 0;
+long start_time_y = 0;
 int count = 4;
 
 void enc_pub_callback(rcl_timer_t * timer, int64_t last_call_time){
@@ -532,8 +533,12 @@ void setup() {
   elbow.write(0);
   wrist.write(0);
   shoulder.write(0);
+
+  cam_servo_rotate(SERVO_CHANNEL_x, x_servo_angle);
+  cam_servo_rotate(SERVO_CHANNEL_y, y_servo_angle);
   
-  start_time = millis();
+  start_time_x = millis();
+  start_time_y = millis();
   
   // digitalWrite(13, HIGH);
 }
@@ -607,16 +612,35 @@ void loop() {
     }
     
     if(abs(R_joystick_x_rover) >= 20){
-      digitalWrite(13, HIGH);
-      x_servo_angle += R_joystick_x_rover * 0.1;
-      x_servo_angle = constrain(x_servo_angle, 0, 180);
+      if(millis() - start_time_x > 50){
+        R_joystick_x_rover > 0 ? x_servo_angle-- : x_servo_angle++;
+        x_servo_angle = constrain(x_servo_angle, 0, 180);
+        cam_servo_rotate(SERVO_CHANNEL_x, x_servo_angle);
+        start_time_x = millis();
+      }
     }
+
     if(abs(R_joystick_y_rover) >= 20){
-      y_servo_angle += R_joystick_y_rover * 0.1;
-      y_servo_angle = constrain(y_servo_angle, 0, 180);
+      if(millis() - start_time_y > 50){
+        R_joystick_y_rover > 0 ? y_servo_angle++ : y_servo_angle--;
+        y_servo_angle = constrain(y_servo_angle, 0, 110);
+        cam_servo_rotate(SERVO_CHANNEL_y, y_servo_angle);
+        start_time_y = millis();
+      }
     }
-    cam_servo_rotate(SERVO_CHANNEL_x, x_servo_angle);
-    cam_servo_rotate(SERVO_CHANNEL_y, y_servo_angle);
+
+    // if(abs(R_joystick_x_rover) >= 10){
+    //   digitalWrite(13, HIGH);
+    //   x_servo_angle += -R_joystick_x_rover * 0.01;
+    //   x_servo_angle = constrain((int)x_servo_angle, 0, 180);
+    // }
+    // if(abs(R_joystick_y_rover) >= 10){
+    //   y_servo_angle += R_joystick_y_rover * 0.01;
+    //   y_servo_angle = constrain((int)y_servo_angle, 0, 180);
+    // }
+    // if(millis() - start_time > 500)
+    // cam_servo_rotate(SERVO_CHANNEL_x, (int)x_servo_angle);
+    // cam_servo_rotate(SERVO_CHANNEL_y, (int)y_servo_angle);
     
     move(x_target, y_target, z_target, theta_target);
     // digitalWrite(13, HIGH);
