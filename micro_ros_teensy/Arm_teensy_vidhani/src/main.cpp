@@ -49,12 +49,12 @@ rcl_timer_t encoder_readings_timer;
 
 rcl_subscription_t subscription_arm;
 rcl_subscription_t subscription_rover;
+rcl_subscription_t subscription_reset;
 
 rcl_publisher_t encoder_pub_;
 
 irc_interfaces__msg__Ps4 ps4_msg;
 std_msgs__msg__Bool reset;
-std_msgs__msg__Bool check_;
 std_msgs__msg__Int64MultiArray encoder_data;
 
 rcl_timer_t timer;
@@ -151,7 +151,7 @@ float Wrist;
 float Turret;
 
 //  for speed of arm
-double k = 0.0002;
+double k = 0.00005;
 
 
 //target coordinates
@@ -174,6 +174,7 @@ float prev1 = 0, prev2 = 0;
 bool manual_turret = false;
 bool flag = false;
 bool moving = false;
+bool reset_flag = false;
 
 //pwm for turret, roll, grip motor
 float pwm, pwm2, pwm3;
@@ -261,7 +262,7 @@ void moveShoulder(float angle) {
 
   float error = angle - Shoulder;
 
-  motorShoulder.rotate(constrain(error * 70, -120, 120));
+  motorShoulder.rotate(constrain(error * 70, -100, 100));
 }
 
 void moveElbow(float angle) {       
@@ -370,6 +371,9 @@ void move(float x, float y, float z, float theta) {
 
 void home() {
 
+  error1 = 1;
+  error2 = 1;
+
   while (error1 != 0) {
 
     // Serial.println("shoulder going to home");
@@ -408,22 +412,17 @@ void home() {
 
 }
 
-// void reset_callback(const void * msgin){
+void subscription_reset_arm(const void * msgin){
+  if(msgin == NULL){
+    return;
+  }
 
-//   if (msgin == NULL) {
-//     return;
-//   }
-  
-//   const std_msgs__msg__Bool * msg = (const std_msgs__msg__Bool *) msgin;
+  const std_msgs__msg__Bool * msg = (const std_msgs__msg__Bool *) msgin;
 
-//   if(msg->data){
-//     home();
-//     turret.write(0);
-//     elbow.write(0);
-//     wrist.write(0);
-//     shoulder.write(0);
-//   }
-// }
+  if(msg->data == true){
+    reset_flag = true;
+  }
+}
 
 bool create_entities()
 {
@@ -450,12 +449,20 @@ bool create_entities()
     ROSIDL_GET_MSG_TYPE_SUPPORT(irc_interfaces, msg, Ps4),
     "/ps4_data_rover",
     &qos_profile));
+    
+  RCCHECK(rclc_subscription_init_default(
+    &subscription_reset,
+    &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool),
+    "/reset_arm"
+  ))
 
   RCCHECK(rclc_publisher_init_default(
     &encoder_pub_,
     &node,
     ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int64MultiArray),
     "/arm_encoders"));
+
 
   // create timer,
   const unsigned int timer_timeout = 10;
@@ -466,7 +473,7 @@ bool create_entities()
     enc_pub_callback));
 
   executor = rclc_executor_get_zero_initialized_executor();
-  RCCHECK(rclc_executor_init(&executor, &support.context, 3, &allocator));
+  RCCHECK(rclc_executor_init(&executor, &support.context, 4, &allocator));
 
   RCCHECK(rclc_executor_add_timer(
     &executor, 
@@ -484,6 +491,13 @@ bool create_entities()
     &subscription_rover,
     &ps4_msg,
     &subscription_callback_rover,
+    ON_NEW_DATA));
+  
+  RCCHECK(rclc_executor_add_subscription(
+    &executor,
+    &subscription_reset,
+    &reset,
+    &subscription_reset_arm,
     ON_NEW_DATA));
 
   encoder_data.data.size = 6;
@@ -558,7 +572,7 @@ void loop() {
       case AGENT_CONNECTED:
       EXECUTE_EVERY_N_MS(200, state = (RMW_RET_OK == rmw_uros_ping_agent(100, 1)) ? AGENT_CONNECTED : AGENT_DISCONNECTED;);
       if (state == AGENT_CONNECTED) {
-        rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100));
+        rclc_executor_spin_some(&executor, RCL_MS_TO_NS(5));
       }
       break;
       case AGENT_DISCONNECTED:
@@ -642,7 +656,21 @@ void loop() {
     // cam_servo_rotate(SERVO_CHANNEL_x, (int)x_servo_angle);
     // cam_servo_rotate(SERVO_CHANNEL_y, (int)y_servo_angle);
     
-    move(x_target, y_target, z_target, theta_target);
+    if(!reset_flag){
+      move(x_target, y_target, z_target, theta_target);
+    } else {
+      home();
+      turret.write(0);
+      elbow.write(0);
+      wrist.write(0);
+      shoulder.write(0);
+      reset_flag = false;
+
+      x_target = 63;
+      y_target = 45;
+      z_target = 0;
+    }
+    
     // digitalWrite(13, HIGH);
 
   prev_x_target = x_target;
