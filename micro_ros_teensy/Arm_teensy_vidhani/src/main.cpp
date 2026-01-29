@@ -64,6 +64,9 @@ rcl_allocator_t allocator;
 rcl_node_t node;
 bool micro_ros_init_successful;
 
+long last_arm_cmd_time = 0;
+long last_nav_cmd_time = 0;
+
 enum states {
   WAITING_AGENT,
   AGENT_AVAILABLE,
@@ -224,6 +227,8 @@ void subscription_callback_arm(const void * msgin)
     
     // motorRoll.rotate(50);
     // digitalWrite(13, HIGH);
+
+    // last_arm_cmd_time = millis();
 }
 
 void subscription_callback_rover(const void * msgin)
@@ -239,7 +244,7 @@ void subscription_callback_rover(const void * msgin)
   R_joystick_x_rover = double(msg->ps4_data_analog[3]);
   R_joystick_y_rover = double(msg->ps4_data_analog[4]);
 
-  
+  // last_nav_cmd_time = millis();
   // digitalWrite(13, HIGH);
 }
 
@@ -677,6 +682,29 @@ void loop() {
   prev_y_target = y_target;
   prev_z_target = z_target;
   prev_theta_target = theta_target;
+
+  // if(state == WAITING_AGENT || state == AGENT_AVAILABLE || state == AGENT_DISCONNECTED || (millis() - last_arm_cmd_time) > 1000) {
+
+	// 	L_joystick_x = 0;
+	// 	L_joystick_y = 0;
+	// 	R_joystick_y = 0;
+
+	// 	cross = 0;
+	// 	circle = 0;
+	// 	triangle = 0;
+	// 	square = 0;
+		
+	// 	up = 0;
+	// 	right = 0;
+	// 	down = 0;
+	// 	left = 0;
+  // }
+
+  // if(state == WAITING_AGENT || state == AGENT_AVAILABLE || state == AGENT_DISCONNECTED || (millis() - last_nav_cmd_time) > 1000) {
+
+  //     R_joystick_x_rover = 0;
+  //     R_joystick_y_rover = 0;
+  // }
 
   
   // delay(10);

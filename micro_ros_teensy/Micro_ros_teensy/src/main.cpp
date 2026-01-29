@@ -59,6 +59,8 @@ rcl_node_t node;
 rcl_timer_t timer;
 bool micro_ros_init_successful;
 
+long last_nav_cmd_time = 0;
+
 enum states {
   WAITING_AGENT,
   AGENT_AVAILABLE,
@@ -97,6 +99,8 @@ void subscription_callback(const void * msgin)
   linear_x = twist_msg.linear.x;
   angular_z = twist_msg.angular.z;
   digitalWrite(13, 1); // Indicate message received
+
+  last_nav_cmd_time = uxr_millis();
 
 }
 
@@ -212,6 +216,11 @@ void loop() {
       break;
     default:
       break;
+  }
+
+  if(state == WAITING_AGENT || state == AGENT_AVAILABLE || state == AGENT_DISCONNECTED || (millis() - last_nav_cmd_time) > 1000) {
+    linear_x = 0;
+    angular_z = 0;
   }
 
   // RCSOFTCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(10)));
