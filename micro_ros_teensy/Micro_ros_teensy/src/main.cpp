@@ -360,13 +360,13 @@ void subscription_callback_arm(const void * msgin)
     R_joystick_y_arm = uint8_t(msg->ps4_data_analog[4]);
 
     up_arm = msg->ps4_data_buttons[13];
-    right_arm = msg->ps4_data_buttons[15];
+    right_arm = msg->ps4_data_buttons[16];
     down_arm = msg->ps4_data_buttons[14];
-    left_arm = msg->ps4_data_buttons[16];
-
-    cross_arm = msg->ps4_data_buttons[0];
-    circle_arm = msg->ps4_data_buttons[1];  
+    left_arm = msg->ps4_data_buttons[15];
+    
     triangle_arm = msg->ps4_data_buttons[2];
+    circle_arm = msg->ps4_data_buttons[1];  
+    cross_arm = msg->ps4_data_buttons[0];
     square_arm = msg->ps4_data_buttons[3];
     
 
@@ -395,9 +395,9 @@ void subscription_callback_rover(const void * msgin)
     // R_joystick_y = double(msg->ps4_data_analog[4]);
     
     up = msg->ps4_data_buttons[13];
-    right = msg->ps4_data_buttons[15];
+    right = msg->ps4_data_buttons[16];
     down = msg->ps4_data_buttons[14];
-    left = msg->ps4_data_buttons[16];
+    left = msg->ps4_data_buttons[15];
     
     triangle = msg->ps4_data_buttons[2];
     circle = msg->ps4_data_buttons[1];  
