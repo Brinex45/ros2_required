@@ -244,6 +244,7 @@
 #include <rmw_microros/rmw_microros.h>
 
 #include <std_msgs/msg/int32.h>
+#include <std_msgs/msg/u_int8_multi_array.h>
 #include <irc_interfaces/msg/ps4.h>
 #include <geometry_msgs/msg/twist.h>
 
@@ -254,9 +255,11 @@
 
 rcl_subscription_t subscription_rover;
 rcl_subscription_t subscription_arm;
+rcl_publisher_t ps_data_check;
 
 irc_interfaces__msg__Ps4 ps4_msg_arm;
 irc_interfaces__msg__Ps4 ps4_msg_rover;
+std_msgs__msg__UInt8MultiArray ps_data;
 
 rclc_executor_t executor;
 rclc_support_t support;
@@ -267,7 +270,7 @@ rcl_node_t node;
 #define ARM_TEENSY_ADDR 9  // Arm Teensy I2C address
 #define PWM_MAX 70
 #define DEADZONE 25
-#define size 7
+// #define size 7
 
 bool pwmFlag = false;
 long st = 0;
@@ -297,6 +300,7 @@ Cytron motorRF(RF_PWM, RF_DIR, 0, PWM_MAX);
 Cytron motorRM(RM_PWM, RM_DIR, 0, PWM_MAX);
 Cytron motorRR(RR_PWM, RR_DIR, 0, PWM_MAX);
 
+uint8_t ps_data_buffer[4];  // BUTTONS, NAV_X, NAV_Y, RESERVED
 
 uint8_t rx_data[8];
 uint8_t nav_data[3];  // BUTTONS,NAV_X, NAV_Y
@@ -305,6 +309,8 @@ uint8_t arm_data[5];  // Remaining 5 bytes of arm
 int8_t x = 0, y = 0;
 int8_t prev_x, prev_y = 0;
 uint8_t buttons;
+
+long last_nav_cmd_time = 0;
 
 int8_t buttons_rover, buttons_arm;
 
@@ -394,23 +400,28 @@ void subscription_callback_rover(const void * msgin)
     L_joystick_y_rover = uint8_t(msg->ps4_data_analog[1]);
     // R_joystick_y = double(msg->ps4_data_analog[4]);
     
-    up = msg->ps4_data_buttons[13];
-    right = msg->ps4_data_buttons[16];
-    down = msg->ps4_data_buttons[14];
-    left = msg->ps4_data_buttons[15];
+    up_arm = msg->ps4_data_buttons[13];
+    right_arm = msg->ps4_data_buttons[16];
+    down_arm = msg->ps4_data_buttons[14];
+    left_arm = msg->ps4_data_buttons[15];
     
-    triangle = msg->ps4_data_buttons[2];
-    circle = msg->ps4_data_buttons[1];  
-    cross = msg->ps4_data_buttons[0];
-    square = msg->ps4_data_buttons[3];
+    triangle_arm = msg->ps4_data_buttons[2];
+    circle_arm = msg->ps4_data_buttons[1];  
+    cross_arm = msg->ps4_data_buttons[0];
+    square_arm = msg->ps4_data_buttons[3];
+    
+    buttons_rover = up_arm << 0 | right_arm << 1 | down_arm << 2 | left_arm << 3 | triangle_arm << 4 | circle_arm << 5 | cross_arm << 6 | square_arm << 7;
+    
+    ps_data.data.data[0] = buttons_rover;
+    ps_data.data.data[1] = L_joystick_x_rover;
+    ps_data.data.data[2] = L_joystick_y_rover;
 
-    buttons_rover = up << 0 | right << 1 | down << 2 | left << 3 | triangle << 4 | circle << 5 | cross << 6 | square << 7;
-    
+    RCSOFTCHECK(rcl_publish(&ps_data_check, &ps_data, NULL));
 
     // motorRoll.rotate(50);
     // digitalWrite(13, HIGH);
 
-    // last_nav_cmd_time = millis();
+    last_nav_cmd_time = millis();
 }
 
 
@@ -434,46 +445,6 @@ void setRightMotors(int speed) {  //right motor speed
   motorRF.rotate(speed);
   motorRM.rotate(speed);
   motorRR.rotate(speed);
-}
-
-// void handleGNSS() {
-//   if (!gnssOK) return;
-
-//   // Must be called VERY frequently
-//   if (myGNSS.getPVT()) {
-//     // Throttle output to USB (Flask)
-//     if (millis() - lastGNSSPrint >= GNSS_PRINT_INTERVAL) {
-//       lastGNSSPrint = millis();
-
-//       if (myGNSS.getFixType() >= 2) {
-//         double lat = myGNSS.getLatitude() / 10000000.0;
-//         double lon = myGNSS.getLongitude() / 10000000.0;
-//         double alt = myGNSS.getAltitudeMSL() / 1000.0;          // meters
-//         double heading = myGNSS.getHeading() / 100000.0;        // degrees
-//         double hAcc = myGNSS.getHorizontalAccuracy() / 1000.0;  // meters
-
-//         Serial.print("Latitude: ");
-//         Serial.print(lat, 6);
-//         Serial.print(", Longitude: ");
-//         Serial.print(lon, 6);
-//         Serial.print(", Elevation: ");
-//         Serial.print(alt, 2);
-//         Serial.print("m");
-//         Serial.print(", Direction: ");
-//         Serial.print(heading, 2);
-//         Serial.print("deg");
-//         Serial.print(", Accuracy: ");
-//         Serial.print(hAcc, 2);
-//       } else {
-//         Serial.println("Latitude: 0, Longitude: 0, Elevation: 0, Direction: 0");
-//       }
-//     }
-//   }
-// }
-
-void AstroData(uint8_t buttons) {  //astrobio button data
-  Serial7.write(buttons);
-  // Serial.println("SENT");
 }
 
 bool create_entities()
@@ -502,10 +473,16 @@ bool create_entities()
     ROSIDL_GET_MSG_TYPE_SUPPORT(irc_interfaces, msg, Ps4),
     "/ps4_data_arm",
     &qos_profile));
+
+  RCCHECK(rclc_publisher_init_default(
+    &ps_data_check,
+    &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, UInt8MultiArray),
+    "/ps_data"));
         
   // create executor
   executor = rclc_executor_get_zero_initialized_executor();
-  RCCHECK(rclc_executor_init(&executor, &support.context, 2, &allocator));
+  RCCHECK(rclc_executor_init(&executor, &support.context, 3, &allocator));
   RCCHECK(rclc_executor_add_subscription(
     &executor,
     &subscription_arm,
@@ -518,6 +495,10 @@ bool create_entities()
     &ps4_msg_rover,
     &subscription_callback_rover,
     ON_NEW_DATA));
+
+    ps_data.data.size = 4;
+    ps_data.data.capacity = 4;
+    ps_data.data.data = ps_data_buffer;
 
   return true;
 }
@@ -590,67 +571,25 @@ void loop() {
       break;
   }
 
-  // if(state == WAITING_AGENT || state == AGENT_AVAILABLE || state == AGENT_DISCONNECTED || (millis() - last_nav_cmd_time) > 1000) {
-    // linear_x = 0;
-    // angular_z = 0;
-  // }
+  if(state == WAITING_AGENT || state == AGENT_AVAILABLE || state == AGENT_DISCONNECTED || (millis() - last_nav_cmd_time) > 2000) {
+    L_joystick_x_rover = 0;
+    L_joystick_y_rover = 0;
+
+    buttons_rover = 0;
+
+    L_joystick_x_arm = 0;
+    L_joystick_y_arm = 0;
+    R_joystick_y_arm = 0;
+
+    buttons_arm = 0;
+  }
   
-  // Request ALL 8 BYTES from Rover ESP
-  // Wire2.requestFrom(ESP_ADDR, size);
-
-  // // int i = 0;
-  // if (Wire2.available()) {
-  //   // while (Wire2.available() && i < size) {
-  //   //   pwmFlag = true;
-  //   //   rx_data[i] = Wire2.read();
-  //   //   i++;
-
-  //   //    //digitalWrite(33, HIGH);
-  //   // }
-  //    Wire2.readBytes(rx_da  ta, size);
-
-  //    st = millis();
-  // }
-
-  // else {
-  //   pwmFlag = false;
-  //   Serial.println("BYTE SKIPPING!!");
-  // //Serial.println(Wire2.available());
-  // }
-
-  // if ((millis() - st) > 80) { //not tested
-  //   rx_data[0] = 0;
-  //   rx_data[1] = 0;
-  //   rx_data[2] = 0;
-  //   rx_data[3] = 0;
-  //   rx_data[4] = 0;
-  //   rx_data[5] = 0;
-  //   rx_data[6] = 0;
-  //   Serial.println("00");
-  // } 
-
   // Extract NAV bytes
   nav_data[0] = buttons_rover;  // ASTRO BUTTONS
   nav_data[1] = L_joystick_x_rover;  // X
   nav_data[2] = L_joystick_y_rover;  // Y
 
   buttons = nav_data[0];
-  AstroData(buttons);
-
-  // up = ((buttons & (1 << 0)) ? 1 : 0);
-  // right = ((buttons & (1 << 1)) ? 1 : 0);
-  // down = ((buttons & (1 << 2)) ? 1 : 0);
-  // left = ((buttons & (1 << 3)) ? 1 : 0);
-  // triangle = ((buttons & (1 << 4)) ? 1 : 0);
-  // circle = ((buttons & (1 << 5)) ? 1 : 0);
-  // cross = ((buttons & (1 << 6)) ? 1 : 0);
-  // square = ((buttons & (1 << 7)) ? 1 : 0);
-
-
-  // Extract ARM bytes (6 bytes)
-  // for (int j = 0; j < 5; j++) {
-  //   arm_data[j] = rx_data[3 + j];
-  // }
 
   arm_data[0] = buttons_arm;
   arm_data[1] = L_joystick_x_arm;
@@ -691,15 +630,6 @@ void loop() {
     setLeftMotors(leftSpeed);
     setRightMotors(rightSpeed);
   }
-
-  // DEBUG
-  Serial.print((String) "X : " + x + " Y:  " + y + " L : " + leftSpeed + " R : " + rightSpeed + "    BTNS : " + buttons + "     || ARM :   || ");
-
-  for (int i = 0; i < 5; i++) {
-    Serial.print(arm_data[i]);
-    Serial.print("    ");
-  }
-  Serial.println();
 
   prev_x = x;
   prev_y = y;
